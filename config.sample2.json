@@ -1,0 +1,10 @@
+{
+    "username": "pokemontrainerclubuser",
+    "password": "changeme",
+    "provider": "ptc",
+    "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
+    "location": {
+        "type": "name",
+        "name": "1451 Broadway, New York, NY 10036"
+    }
+}

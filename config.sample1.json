@@ -1,0 +1,14 @@
+{
+    "username": "googleuser",
+    "password": "changeme",
+    "provider": "google",
+    "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
+    "location": {
+        "type": "coords",
+        "coords": {
+            "latitude": 40.7589,
+            "longitude": -73.9851,
+            "altitude" : 0
+        }
+    }
+}
