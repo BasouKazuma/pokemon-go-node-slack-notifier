@@ -53,7 +53,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                             
                             var notify_pokemon = true;
                             
-                            for (k = 0; k < pokemon_ignore_list.length; k++)
+                            for (var k = 0; k < pokemon_ignore_list.length; k++)
                             {
                               if (pokemon_ignore_list[k] == pokemon.id)
                               {
@@ -88,19 +88,20 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                                     short: false
                                 });
                                 console.log('[i] Added notification for ' + pokemon.name);
-                              }
                             
-                            var current_time_object = new Date();
-                            current_time = current_time_object.getTime();
-                            discovered_pokemon.push(
-                                {
-                                    pokemon: pokemon,
-                                    encounter_id: wildPokemon.EncounterId,
-                                    time_remaining: wildPokemon.TimeTillHiddenMs,
-                                    time_added: current_time
-                                }
-                            );
-                            console.log('[i] Added discovered entry for ' + pokemon.name);
+                                var current_time_object = new Date();
+                                current_time = current_time_object.getTime();
+                                discovered_pokemon.push(
+                                    {
+                                        pokemon: pokemon,
+                                        encounter_id: wildPokemon.EncounterId,
+                                        time_remaining: wildPokemon.TimeTillHiddenMs,
+                                        time_added: current_time
+                                    }
+                                );
+                                console.log('[i] Added discovery entry for ' + pokemon.name);
+
+                            }
                         } 
                     }
                 }
@@ -126,13 +127,14 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                 // Remove any expired entries
                 var current_time_object = new Date();
                 current_time = current_time_object.getTime();
-                for (m = discovered_pokemon.length - 1; m >= 0; m--)
+                for (var m = discovered_pokemon.length - 1; m >= 0; m--)
                 {
                     var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
                     if (expiry_time < current_time)
                     {
+                        var pokemon = discovered_pokemon[m].pokemon.name;
                         discovered_pokemon.splice(m, 1);
-                        console.log('[i] Removed stale discovered entry for  ' + pokemon.name);
+                        console.log('[i] Removed stale discovery entry for  ' + pokemon.name);
                     }
                 }
 
