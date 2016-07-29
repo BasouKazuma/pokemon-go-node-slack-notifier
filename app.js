@@ -132,7 +132,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                     var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
                     if (expiry_time < current_time)
                     {
-                        var pokemon = discovered_pokemon[m].pokemon.name;
+                        var pokemon = discovered_pokemon[m].pokemon;
                         discovered_pokemon.splice(m, 1);
                         console.log('[i] Removed stale discovery entry for  ' + pokemon.name);
                     }
