@@ -3,6 +3,6 @@
   "version": "0.2.4",
   "dependencies": {
     "express": "^4.12.3",
-    "pokemon-go-node-api": "^3.10.6"
+    "pokemon-go-node-api": "*"
   }
 }
