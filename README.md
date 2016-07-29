@@ -3,7 +3,7 @@
 ## Purpose
 To get notifications sent to Slack for Pokemon nearby a specified location. Works great for an office or school!
 
-## Requirments
+## Requirements
   * Node.js
   * npm
   * git
