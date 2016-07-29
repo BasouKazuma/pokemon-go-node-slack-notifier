@@ -6,6 +6,8 @@ var request = require('request');
 var express = require("express");
 var app = express();
 
+var timeInterval = 10 * 1000;
+
 var pokevision_url = "https://pokevision.com/";
 var google_maps_url = "https://www.google.com/maps/place/";
 
@@ -47,7 +49,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                         {
                             var wildPokemon = hb.cells[i].WildPokemon[j];
                             var pokemon = Pokeio.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
-                            console.log('1[+] There is a ' + pokemon.name + ' nearby');
+                            console.log('[i] There is a ' + pokemon.name + ' nearby');
                             
                             var notify_pokemon = true;
                             
@@ -85,18 +87,20 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                                     thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
                                     short: false
                                 });
+                                console.log('[i] Added notification for ' + pokemon.name);
                               }
                             
                             var current_time_object = new Date();
                             current_time = current_time_object.getTime();
                             discovered_pokemon.push(
                                 {
-                                    pokemon_id: pokemon.id,
+                                    pokemon: pokemon,
                                     encounter_id: wildPokemon.EncounterId,
                                     time_remaining: wildPokemon.TimeTillHiddenMs,
                                     time_added: current_time
                                 }
                             );
+                            console.log('[i] Added discovered entry for ' + pokemon.name);
                         } 
                     }
                 }
@@ -128,13 +132,14 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                     if (expiry_time < current_time)
                     {
                         discovered_pokemon.splice(m, 1);
+                        console.log('[i] Removed stale discovered entry for  ' + pokemon.name);
                     }
                 }
 
             }
 
         });
-    }, 10000);
+    }, timeInterval);
 });
 
 
