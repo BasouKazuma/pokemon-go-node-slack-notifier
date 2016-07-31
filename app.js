@@ -12,17 +12,12 @@ var google_maps_url = "https://www.google.com/maps/place/";
 // Store what was already discovered to prevent duplicate messages
 var discovered_pokemon = [];
 
-// Hardcoded for now
-var pokemon_ignore_list = [
-    84, // Doduo
-    16, // Pidgey
-    19, // Rattata
-    41, // Zubat
-    10, // Caterpie
-    13, // Weedle
-    21, // Spearow
-    0 // Placeholder
-];
+// Optional list of Pokemon to suppress notifications for
+try {
+    var pokemon_ignore_list = require('./ignore_list.js');
+} catch (ex) {
+    var pokemon_ignore_list = [];
+}
 
 var keepRunning = true;
 var timeInterval = 10 * 1000;
