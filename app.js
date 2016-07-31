@@ -19,11 +19,8 @@ try {
     var pokemon_ignore_list = [];
 }
 
-var keepRunning = true;
 var timeInterval = 10 * 1000;
 
-while (keepRunning)
-{
 Pokeio.init(config.username, config.password, config.location, config.provider, function(err) {
     var refreshId = setInterval(function(){
         Pokeio.Heartbeat(function(err,hb) {
@@ -145,7 +142,6 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
         });
     }, timeInterval);
 });
-}
 
 
 app.get("/",function(req,res) {
