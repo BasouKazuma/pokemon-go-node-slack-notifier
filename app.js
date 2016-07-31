@@ -6,8 +6,6 @@ var request = require('request');
 var express = require("express");
 var app = express();
 
-var timeInterval = 10 * 1000;
-
 var pokevision_url = "https://pokevision.com/";
 var google_maps_url = "https://www.google.com/maps/place/";
 
@@ -26,8 +24,13 @@ var pokemon_ignore_list = [
     0 // Placeholder
 ];
 
+var keepRunning = true;
+var timeInterval = 10 * 1000;
+
+while (keepRunning)
+{
 Pokeio.init(config.username, config.password, config.location, config.provider, function(err) {
-    setInterval(function(){
+    var refreshId = setInterval(function(){
         Pokeio.Heartbeat(function(err,hb) {
             var current_time_object = new Date();
             current_time = current_time_object.getTime();
@@ -35,6 +38,10 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
             if (err)
             {
                 console.log(err);
+                if (err == 'No result')
+                {
+                    clearInterval(refreshId);
+                }
             }
             else
             {
@@ -134,7 +141,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                     {
                         var pokemon = discovered_pokemon[m].pokemon;
                         discovered_pokemon.splice(m, 1);
-                        console.log('[i] Removed stale discovery entry for  ' + pokemon.name);
+                        console.log('[i] Removed stale discovery entry for ' + pokemon.name);
                     }
                 }
 
@@ -143,6 +150,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
         });
     }, timeInterval);
 });
+}
 
 
 app.get("/",function(req,res) {
