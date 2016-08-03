@@ -19,11 +19,14 @@ try {
     var pokemon_ignore_list = [];
 }
 
-var timeInterval = 10 * 1000;
+var initTimeInterval = 30 * 60 * 1000;
+var heartbeatTimeInterval = 10 * 1000;
 
-Pokeio.init(config.username, config.password, config.location, config.provider, function(err) {
-    var refreshId = setInterval(function(){
-        Pokeio.Heartbeat(function(err,hb) {
+var initPokeio = function () {
+var pokeio_instance = Pokeio;
+pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+    var findPokemon = function() {
+        pokeio_instance.Heartbeat(function(err,hb) {
             var current_time_object = new Date();
             current_time = current_time_object.getTime();
             console.log("*** NEW RUN @" + current_time +" ***");
@@ -32,7 +35,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                 console.log(err);
                 if (err == 'No result')
                 {
-                    clearInterval(refreshId);
+                    //
                 }
             }
             else
@@ -47,7 +50,7 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
                         for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
                         {
                             var wildPokemon = hb.cells[i].WildPokemon[j];
-                            var pokemon = Pokeio.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
+                            var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
                             console.log('[i] There is a ' + pokemon.name + ' nearby');
                             
                             var notify_pokemon = true;
@@ -140,8 +143,11 @@ Pokeio.init(config.username, config.password, config.location, config.provider, 
             }
 
         });
-    }, timeInterval);
+    setTimeout(findPokemon, heartbeatTimeInterval);
+    }
 });
+setTimeout(initPokeio, initTimeInterval);
+}
 
 
 app.get("/",function(req,res) {
