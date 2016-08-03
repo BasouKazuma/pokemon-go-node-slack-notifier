@@ -12,8 +12,10 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
   * Command to change the location (TODO)
 
 ## Known Issues
+  * Will stop reporting after and hour or so and has to be restarted
   * May report Pokemon that are a little out of range
   * Currently doesn't report all Pokemon that you will see through the app
+  * Will not work when run on hosting services like AWS since Niantic is blocking requests
 
 ## Requirements
   * Node.js
