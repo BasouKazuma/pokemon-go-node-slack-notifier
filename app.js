@@ -144,10 +144,12 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
 
         });
     setTimeout(findPokemon, heartbeatTimeInterval);
-    }
+    };
+    findPokemon();
 });
 setTimeout(initPokeio, initTimeInterval);
-}
+};
+initPokeio();
 
 
 app.get("/",function(req,res) {
