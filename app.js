@@ -22,10 +22,7 @@ try {
 var initTimeInterval = 30 * 60 * 1000;
 var heartbeatTimeInterval = 10 * 1000;
 
-var initPokeio = function () {
-var pokeio_instance = Pokeio;
-pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-    var findPokemon = function() {
+    var findPokemon = function(pokeio_instance) {
         pokeio_instance.Heartbeat(function(err,hb) {
             var current_time_object = new Date();
             current_time = current_time_object.getTime();
@@ -35,7 +32,11 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
                 console.log(err);
                 if (err == 'No result')
                 {
-                    //
+                    // Try to log back in
+                    //pokeio_instance.GetAccessToken(config.username, config.password, function(err, token){});
+                    pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+                        //
+                    });
                 }
             }
             else
@@ -143,13 +144,29 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
             }
 
         });
-    setTimeout(findPokemon, heartbeatTimeInterval);
     };
-    findPokemon();
+
+// var initPokeio = function () {
+//     var pokeio_instance = Pokeio;
+//     pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+        
+//         setTimeout(function(){
+//             findPokemon(pokeio_instance);
+//         }, heartbeatTimeInterval);
+        
+//         findPokemon(pokeio_instance);
+//     });
+//     //setTimeout(initPokeio, initTimeInterval);
+// };
+//initPokeio();
+var pokeio_instance = Pokeio;
+pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+    //
 });
-setTimeout(initPokeio, initTimeInterval);
-};
-initPokeio();
+
+setInterval(function(){
+    findPokemon(pokeio_instance);
+}, heartbeatTimeInterval);
 
 
 app.get("/",function(req,res) {
