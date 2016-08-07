@@ -21,7 +21,9 @@ try {
 
 var heartbeatTimeInterval = 10 * 1000;
 
-var post_to_slack = function(url, data)
+// Functions
+
+var postToSlack = function(url, data)
 {
     request.post(
         {
@@ -38,7 +40,28 @@ var post_to_slack = function(url, data)
     );
 }
 
-var add_discovered_pokemon = function(discovered_pokemon, pokemon, wildPokemon)
+var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, wildPokemon, pokevision_url, google_maps_url)
+{
+    nearby_pokemon_fields.push(
+        {
+            fallback: pokemon.name + " is nearby!",
+            title: pokemon.name,
+            text:  pokemon.name + " is nearby. Go catch it already!\n " +
+                "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
+                " | " +
+                " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
+            // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
+            // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
+            // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
+            thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
+            short: false
+        }
+    );
+    console.log('[i] Added notification for ' + pokemon.name);
+    return nearby_pokemon_fields;
+}
+
+var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
 {
     var current_time_object = new Date();
     current_time = current_time_object.getTime();
@@ -54,7 +77,7 @@ var add_discovered_pokemon = function(discovered_pokemon, pokemon, wildPokemon)
     return discovered_pokemon;
 }
 
-var remove_expired_pokemon = function(discovered_pokemon)
+var removeExpiredPokemon = function(discovered_pokemon)
 {
     var current_time_object = new Date();
     current_time = current_time_object.getTime();
@@ -128,25 +151,8 @@ var findPokemon = function(pokeio_instance, config) {
                         if (notify_pokemon == true)
                         {
                             fallback_text += pokemon.name + ' |';
-                            nearby_pokemon_fields.push(
-                                {
-                                    fallback: pokemon.name + " is nearby!",
-                                    title: pokemon.name,
-                                    text:  pokemon.name + " is nearby. Go catch it already!\n " +
-                                        "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
-                                        " | " +
-                                        " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
-                                    // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
-                                    // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
-                                    // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
-                                    thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
-                                    short: false
-                                }
-                            );
-                            console.log('[i] Added notification for ' + pokemon.name);
-                            
-                            discovered_pokemon = add_discovered_pokemon(discovered_pokemon, pokemon, wildPokemon);
-
+                            nearby_pokemon_fields = addNearbyPokemon(nearby_pokemon_fields, pokemon, wildPokemon, pokevision_url, google_maps_url);
+                            discovered_pokemon = addDiscoveredPokemon(discovered_pokemon, pokemon, wildPokemon);
                         }
                     } 
                 }
@@ -156,14 +162,15 @@ var findPokemon = function(pokeio_instance, config) {
               attachments: nearby_pokemon_fields
             };
             
-            post_to_slack(config.slack_request_url, slackData);
-
-            discovered_pokemon = remove_expired_pokemon(discovered_pokemon);
+            postToSlack(config.slack_request_url, slackData);
+            discovered_pokemon = removeExpiredPokemon(discovered_pokemon);
 
         }
 
     });
 };
+
+// App logic
 
 var pokeio_instance = Pokeio;
 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
