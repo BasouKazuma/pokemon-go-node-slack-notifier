@@ -19,146 +19,131 @@ try {
     var pokemon_ignore_list = [];
 }
 
-var initTimeInterval = 30 * 60 * 1000;
 var heartbeatTimeInterval = 10 * 1000;
 
-    var findPokemon = function(pokeio_instance) {
-        pokeio_instance.Heartbeat(function(err,hb) {
+var findPokemon = function(pokeio_instance) {
+    pokeio_instance.Heartbeat(function(err,hb) {
+        var current_time_object = new Date();
+        current_time = current_time_object.getTime();
+        console.log("*** NEW RUN @" + current_time +" ***");
+        if (err)
+        {
+            console.log(err);
+            if (err == 'No result')
+            {
+                // Try to log back in
+                pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+                    console.log(err);
+                });
+            }
+        }
+        else
+        {
+            var fallback_text = "Nearby Pokemon: ";
+            var nearby_pokemon_fields = [];
+
+            for (var i = hb.cells.length - 1; i >= 0; i--)
+            {
+                if (hb.cells[i].WildPokemon[0])
+                {
+                    for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
+                    {
+                        var wildPokemon = hb.cells[i].WildPokemon[j];
+                        var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
+                        console.log('[i] There is a ' + pokemon.name + ' nearby');
+                        
+                        var notify_pokemon = true;
+                        
+                        for (var k = 0; k < pokemon_ignore_list.length; k++)
+                        {
+                          if (pokemon_ignore_list[k] == pokemon.id)
+                          {
+                            notify_pokemon = false;
+                          }
+                        }
+                        
+                        for (var k = discovered_pokemon.length - 1; k >= 0; k--)
+                        {
+                            if (discovered_pokemon[k].encounter_id.low == wildPokemon.EncounterId.low &&
+                                discovered_pokemon[k].encounter_id.high == wildPokemon.EncounterId.high &&
+                                discovered_pokemon[k].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
+                            {
+                                notify_pokemon = false;
+                            }
+                        }
+                        
+                        if (notify_pokemon == true)
+                        {
+                            fallback_text += pokemon.name + ' |';
+                            nearby_pokemon_fields.push({
+                                fallback: pokemon.name + " is nearby!",
+                                title: pokemon.name,
+                                text:  pokemon.name + " is nearby. Go catch it already!\n " +
+                                    "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
+                                    " | " +
+                                    " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
+                                // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
+                                // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
+                                // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
+                                thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
+                                short: false
+                            });
+                            console.log('[i] Added notification for ' + pokemon.name);
+                        
+                            var current_time_object = new Date();
+                            current_time = current_time_object.getTime();
+                            discovered_pokemon.push(
+                                {
+                                    pokemon: pokemon,
+                                    encounter_id: wildPokemon.EncounterId,
+                                    time_remaining: wildPokemon.TimeTillHiddenMs,
+                                    time_added: current_time
+                                }
+                            );
+                            console.log('[i] Added discovery entry for ' + pokemon.name);
+
+                        }
+                    } 
+                }
+            }
+
+            var slackData = {
+              attachments: nearby_pokemon_fields
+            };
+            
+            request.post(
+                {
+                    url: config.slack_request_url,
+                    json: true,
+                    headers: {
+                       "content-type": "application/json",
+                    },
+                    body: slackData
+                }, 
+                function(error, response, body) {
+                    console.log(body);
+                }
+            );
+
+            // Remove any expired entries
             var current_time_object = new Date();
             current_time = current_time_object.getTime();
-            console.log("*** NEW RUN @" + current_time +" ***");
-            if (err)
+            for (var m = discovered_pokemon.length - 1; m >= 0; m--)
             {
-                console.log(err);
-                if (err == 'No result')
+                var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
+                if (expiry_time < current_time)
                 {
-                    // Try to log back in
-                    //pokeio_instance.GetAccessToken(config.username, config.password, function(err, token){});
-                    pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-                        //
-                    });
+                    var pokemon = discovered_pokemon[m].pokemon;
+                    discovered_pokemon.splice(m, 1);
+                    console.log('[i] Removed stale discovery entry for ' + pokemon.name);
                 }
             }
-            else
-            {
-                var fallback_text = "Nearby Pokemon: ";
-                var nearby_pokemon_fields = [];
-    
-                for (var i = hb.cells.length - 1; i >= 0; i--)
-                {
-                    if (hb.cells[i].WildPokemon[0])
-                    {
-                        for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
-                        {
-                            var wildPokemon = hb.cells[i].WildPokemon[j];
-                            var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
-                            console.log('[i] There is a ' + pokemon.name + ' nearby');
-                            
-                            var notify_pokemon = true;
-                            
-                            for (var k = 0; k < pokemon_ignore_list.length; k++)
-                            {
-                              if (pokemon_ignore_list[k] == pokemon.id)
-                              {
-                                notify_pokemon = false;
-                              }
-                            }
-                            
-                            for (var k = discovered_pokemon.length - 1; k >= 0; k--)
-                            {
-                                if (discovered_pokemon[k].encounter_id.low == wildPokemon.EncounterId.low &&
-                                    discovered_pokemon[k].encounter_id.high == wildPokemon.EncounterId.high &&
-                                    discovered_pokemon[k].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
-                                {
-                                    notify_pokemon = false;
-                                }
-                            }
-                            
-                            if (notify_pokemon == true)
-                            {
-                                fallback_text += pokemon.name + ' |';
-                                nearby_pokemon_fields.push({
-                                    fallback: pokemon.name + " is nearby!",
-                                    title: pokemon.name,
-                                    text:  pokemon.name + " is nearby. Go catch it already!\n " +
-                                        "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
-                                        " | " +
-                                        " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
-                                    // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
-                                    // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
-                                    // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
-                                    thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
-                                    short: false
-                                });
-                                console.log('[i] Added notification for ' + pokemon.name);
-                            
-                                var current_time_object = new Date();
-                                current_time = current_time_object.getTime();
-                                discovered_pokemon.push(
-                                    {
-                                        pokemon: pokemon,
-                                        encounter_id: wildPokemon.EncounterId,
-                                        time_remaining: wildPokemon.TimeTillHiddenMs,
-                                        time_added: current_time
-                                    }
-                                );
-                                console.log('[i] Added discovery entry for ' + pokemon.name);
 
-                            }
-                        } 
-                    }
-                }
+        }
 
-                var slackData = {
-                  attachments: nearby_pokemon_fields
-                };
-                
-                request.post(
-                    {
-                        url: config.slack_request_url,
-                        json: true,
-                        headers: {
-                           "content-type": "application/json",
-                        },
-                        body: slackData
-                    }, 
-                    function(error, response, body) {
-                        console.log(body);
-                    }
-                );
+    });
+};
 
-                // Remove any expired entries
-                var current_time_object = new Date();
-                current_time = current_time_object.getTime();
-                for (var m = discovered_pokemon.length - 1; m >= 0; m--)
-                {
-                    var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
-                    if (expiry_time < current_time)
-                    {
-                        var pokemon = discovered_pokemon[m].pokemon;
-                        discovered_pokemon.splice(m, 1);
-                        console.log('[i] Removed stale discovery entry for ' + pokemon.name);
-                    }
-                }
-
-            }
-
-        });
-    };
-
-// var initPokeio = function () {
-//     var pokeio_instance = Pokeio;
-//     pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-        
-//         setTimeout(function(){
-//             findPokemon(pokeio_instance);
-//         }, heartbeatTimeInterval);
-        
-//         findPokemon(pokeio_instance);
-//     });
-//     //setTimeout(initPokeio, initTimeInterval);
-// };
-//initPokeio();
 var pokeio_instance = Pokeio;
 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
     //

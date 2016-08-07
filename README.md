@@ -24,7 +24,7 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
 
 ## Installation and Setup
   * Install the above requirements
-  * Clone the repo
+  * Get a copy of the repo
   * Install the npm dependencies
   * Set up an Incoming WebHook Integration for your Slack user or channel
   * Create a config.json based on a copy of a sample config
