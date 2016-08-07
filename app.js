@@ -21,7 +21,7 @@ try {
 
 var heartbeatTimeInterval = 10 * 1000;
 
-var post_to_slack = function(url, data, )
+var post_to_slack = function(url, data)
 {
     request.post(
         {
