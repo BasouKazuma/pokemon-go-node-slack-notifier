@@ -3,6 +3,7 @@
     "password": "changeme",
     "provider": "ptc",
     "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
+    "port": 80,
     "location": {
         "type": "name",
         "name": "1451 Broadway, New York, NY 10036"

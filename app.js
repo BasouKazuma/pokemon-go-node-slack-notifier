@@ -166,4 +166,4 @@ app.get("/",function(req,res) {
         res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
 });
 
-app.listen(80);
+app.listen(config.port);

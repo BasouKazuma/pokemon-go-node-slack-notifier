@@ -3,6 +3,7 @@
     "password": "changeme",
     "provider": "google",
     "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
+    "port": 80,
     "location": {
         "type": "coords",
         "coords": {
