@@ -33,7 +33,10 @@ var findPokemon = function(pokeio_instance) {
             {
                 // Try to log back in
                 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-                    console.log(err);
+                    if (err)
+                    {
+                        console.log(err);
+                    }
                 });
             }
         }
@@ -75,19 +78,21 @@ var findPokemon = function(pokeio_instance) {
                         if (notify_pokemon == true)
                         {
                             fallback_text += pokemon.name + ' |';
-                            nearby_pokemon_fields.push({
-                                fallback: pokemon.name + " is nearby!",
-                                title: pokemon.name,
-                                text:  pokemon.name + " is nearby. Go catch it already!\n " +
-                                    "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
-                                    " | " +
-                                    " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
-                                // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
-                                // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
-                                // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
-                                thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
-                                short: false
-                            });
+                            nearby_pokemon_fields.push(
+                                {
+                                    fallback: pokemon.name + " is nearby!",
+                                    title: pokemon.name,
+                                    text:  pokemon.name + " is nearby. Go catch it already!\n " +
+                                        "<" + pokevision_url + "#/@" + wildPokemon.Latitude +"," + wildPokemon.Longitude + "|Pokevision>" + 
+                                        " | " +
+                                        " <" + google_maps_url + wildPokemon.Latitude +"," + wildPokemon.Longitude +"|Google Maps>",
+                                    // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
+                                    // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
+                                    // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
+                                    thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
+                                    short: false
+                                }
+                            );
                             console.log('[i] Added notification for ' + pokemon.name);
                         
                             var current_time_object = new Date();
@@ -146,10 +151,13 @@ var findPokemon = function(pokeio_instance) {
 
 var pokeio_instance = Pokeio;
 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-    //
+    if (err)
+    {
+        console.log(err);
+    }
 });
 
-setInterval(function(){
+setInterval(function() {
     findPokemon(pokeio_instance);
 }, heartbeatTimeInterval);
 
