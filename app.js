@@ -21,11 +21,61 @@ try {
 
 var heartbeatTimeInterval = 10 * 1000;
 
-var findPokemon = function(pokeio_instance) {
+var post_to_slack = function(url, data, )
+{
+    request.post(
+        {
+            url: url,
+            json: true,
+            headers: {
+               "content-type": "application/json",
+            },
+            body: data
+        }, 
+        function(error, response, body) {
+            console.log(body);
+        }
+    );
+}
+
+var add_discovered_pokemon = function(discovered_pokemon, pokemon, wildPokemon)
+{
+    var current_time_object = new Date();
+    current_time = current_time_object.getTime();
+    discovered_pokemon.push(
+        {
+            pokemon: pokemon,
+            encounter_id: wildPokemon.EncounterId,
+            time_remaining: wildPokemon.TimeTillHiddenMs,
+            time_added: current_time
+        }
+    );
+    console.log('[i] Added discovery entry for ' + pokemon.name);
+    return discovered_pokemon;
+}
+
+var remove_expired_pokemon = function(discovered_pokemon)
+{
+    var current_time_object = new Date();
+    current_time = current_time_object.getTime();
+    for (var m = discovered_pokemon.length - 1; m >= 0; m--)
+    {
+        var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
+        if (expiry_time < current_time)
+        {
+            var pokemon = discovered_pokemon[m].pokemon;
+            discovered_pokemon.splice(m, 1);
+            console.log('[i] Removed stale discovery entry for ' + pokemon.name);
+        }
+    }
+    return discovered_pokemon;
+}
+
+var findPokemon = function(pokeio_instance, config) {
     pokeio_instance.Heartbeat(function(err,hb) {
         var current_time_object = new Date();
         current_time = current_time_object.getTime();
-        console.log("*** NEW RUN @" + current_time +" ***");
+        console.log("*** NEW RUN @" + current_time + " ***");
         if (err)
         {
             console.log(err);
@@ -65,11 +115,11 @@ var findPokemon = function(pokeio_instance) {
                           }
                         }
                         
-                        for (var k = discovered_pokemon.length - 1; k >= 0; k--)
+                        for (var m = discovered_pokemon.length - 1; m >= 0; m--)
                         {
-                            if (discovered_pokemon[k].encounter_id.low == wildPokemon.EncounterId.low &&
-                                discovered_pokemon[k].encounter_id.high == wildPokemon.EncounterId.high &&
-                                discovered_pokemon[k].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
+                            if (discovered_pokemon[m].encounter_id.low == wildPokemon.EncounterId.low &&
+                                discovered_pokemon[m].encounter_id.high == wildPokemon.EncounterId.high &&
+                                discovered_pokemon[m].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
                             {
                                 notify_pokemon = false;
                             }
@@ -94,18 +144,8 @@ var findPokemon = function(pokeio_instance) {
                                 }
                             );
                             console.log('[i] Added notification for ' + pokemon.name);
-                        
-                            var current_time_object = new Date();
-                            current_time = current_time_object.getTime();
-                            discovered_pokemon.push(
-                                {
-                                    pokemon: pokemon,
-                                    encounter_id: wildPokemon.EncounterId,
-                                    time_remaining: wildPokemon.TimeTillHiddenMs,
-                                    time_added: current_time
-                                }
-                            );
-                            console.log('[i] Added discovery entry for ' + pokemon.name);
+                            
+                            discovered_pokemon = add_discovered_pokemon(discovered_pokemon, pokemon, wildPokemon);
 
                         }
                     } 
@@ -116,33 +156,9 @@ var findPokemon = function(pokeio_instance) {
               attachments: nearby_pokemon_fields
             };
             
-            request.post(
-                {
-                    url: config.slack_request_url,
-                    json: true,
-                    headers: {
-                       "content-type": "application/json",
-                    },
-                    body: slackData
-                }, 
-                function(error, response, body) {
-                    console.log(body);
-                }
-            );
+            post_to_slack(config.slack_request_url, slackData);
 
-            // Remove any expired entries
-            var current_time_object = new Date();
-            current_time = current_time_object.getTime();
-            for (var m = discovered_pokemon.length - 1; m >= 0; m--)
-            {
-                var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
-                if (expiry_time < current_time)
-                {
-                    var pokemon = discovered_pokemon[m].pokemon;
-                    discovered_pokemon.splice(m, 1);
-                    console.log('[i] Removed stale discovery entry for ' + pokemon.name);
-                }
-            }
+            discovered_pokemon = remove_expired_pokemon(discovered_pokemon);
 
         }
 
@@ -158,7 +174,7 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
 });
 
 setInterval(function() {
-    findPokemon(pokeio_instance);
+    findPokemon(pokeio_instance, config);
 }, heartbeatTimeInterval);
 
 
