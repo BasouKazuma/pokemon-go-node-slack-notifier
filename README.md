@@ -4,17 +4,15 @@
 To get notifications sent to Slack for Pokemon nearby a specified location. Works great for an office or school!
 
 ## Features
-  * Nearby Pokemon notifications (Done)
-  * Display location of the Pokemon on Pokevision / Google Maps (Done)
+  * Nearby Pokemon notifications, including lured (Done)
+  * Display location of the Pokemon on FastPokeMap / Google Maps (Done)
   * Display the Pokemon's expiration date (TODO)
   * Ignore list for unwanted Pokemon (Done, static config for now)
-  * Command to add/remove Pokemon to the ignore list(TODO)
+  * Command to add/remove Pokemon to the ignore list (TODO)
   * Command to change the location (TODO)
 
 ## Known Issues
-  * Will stop reporting after and hour or so and has to be restarted
   * May report Pokemon that are a little out of range
-  * Currently doesn't report all Pokemon that you will see through the app
   * Will not work when run on hosting services like AWS since Niantic is blocking requests
 
 ## Requirements
