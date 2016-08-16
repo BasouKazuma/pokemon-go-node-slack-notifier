@@ -8,6 +8,7 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
   * Display location of the Pokemon on FastPokeMap / Google Maps (Done)
   * Display the Pokemon's expiration date (TODO)
   * Ignore list for unwanted Pokemon (Done, static config for now)
+  * Specify a start and end time for receiving notifications (Done)
   * Command to add/remove Pokemon to the ignore list (TODO)
   * Command to change the location (TODO)
 

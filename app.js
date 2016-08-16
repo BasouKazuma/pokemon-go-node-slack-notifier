@@ -28,8 +28,75 @@ try {
 
 var heartbeatTimeInterval = 10 * 1000;
 
-// Functions
+var pokeio_instance = new PokemonApi.Pokeio();
+pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+    if (err)
+    {
+        console.log(err);
+    }
+});
 
+setInterval(function() {
+    pokeio_instance.Heartbeat(function(err,hb) {
+        var current_time_object = new Date();
+        var time = current_time_object.getHours() + ":" + current_time_object.getMinutes();
+        console.log("*** NEW RUN @" + time + " ***");
+        var start_time_minutes = getHoursMinutesToMinutes(config.start_time);
+        var end_time_minutes = getHoursMinutesToMinutes(config.end_time);
+        var current_time_minutes = getHoursMinutesToMinutes(time);
+        // console.log("Start: " + start_time_minutes + " End: " + end_time_minutes + " Current: " + current_time_minutes);
+        if (current_time_minutes < start_time_minutes
+            || current_time_minutes > end_time_minutes)
+        {
+            console.log("[i] Current Time is " + time + ". Reporting will be online between " + config.start_time + " and " + config.end_time);
+        }
+        else if (err)
+        {
+            console.log(err);
+            // Try to log back in
+            pokeio_instance = new PokemonApi.Pokeio();
+            pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+                if (err)
+                {
+                    console.log(err);
+                }
+            });
+        }
+        else
+        {
+            findPokemon(hb);
+        }
+    });
+}, heartbeatTimeInterval);
+
+
+app.get("/",function(req,res) {
+        res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
+});
+
+app.listen(config.port);
+
+
+/***** FUNCATIONS *****/
+
+/**
+ * @param {string} time - A timestamp in the format hh:mm
+ */
+var getHoursMinutesToMinutes = function(time)
+{
+    var time_array = time.split(":");
+    return parseInt(time_array[0]) * 60 + parseInt(time_array[1]);
+}
+
+
+/**
+ * @param {float} lat1 - 
+ * @param {float} long1 - 
+ * @param {float} lat2 - 
+ * @param {float} long2 - 
+ * 
+ * @ returns {float} Distance between 2 GPS coordinates in meters
+ */
 var distanceBetweenCoordinates = function(lat1, long1, lat2, long2)
 {
     var R = 6371e3; // metres
@@ -50,6 +117,10 @@ var distanceBetweenCoordinates = function(lat1, long1, lat2, long2)
 }
 
 
+/**
+ * @param {string} slack_url - Slack incoming webhook url
+ * @param {array} nearby_pokemon_fields - Array of Slack attachment objects
+ */
 var postToSlack = function(slack_url, nearby_pokemon_fields)
 {
     var slack_data = {
@@ -72,6 +143,15 @@ var postToSlack = function(slack_url, nearby_pokemon_fields)
     );
 }
 
+
+/**
+ * @param {string} nearby_pokemon_fields - Array of Slack attachment objects
+ * @param {object} pokemon - Generic info about a Pokemon
+ * @param {float} latitude - Latitude location of Pokemon in degrees
+ * @param {float} longitude - Longitude location of Pokemon in degrees
+ * 
+ * @returns {array} of Slack attachment objects
+ */
 var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, latitude, longitude)
 {
     nearby_pokemon_fields.push(
@@ -95,6 +175,13 @@ var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, latitude, longit
 }
 
 
+/**
+ * @param {array} discovered_pokemon - List of recent Pokemon already encountered
+ * @param {object} pokemon - Generic info about a Pokemon
+ * @param {object} wildPokemon - Instance specific info about the encountered Pokemon
+ *
+ * @returns {array} of recent Pokemon already encountered
+ */
 var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
 {
     var current_time_object = new Date();
@@ -116,6 +203,13 @@ var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
 }
 
 
+/**
+ * @param {array} discovered_lured_pokemon - List of recent Pokemon already encountered
+ * @param {object} pokemon - Generic info about a Pokemon
+ * @param {object} fort - Instance specific info about the nearby Fort/PokeStop
+ *
+ * @returns {array} of recent Pokemon already encountered
+ */
 var addDiscoveredLuredPokemon = function(discovered_lured_pokemon, pokemon, fort)
 {
     var current_time_object = new Date();
@@ -135,6 +229,11 @@ var addDiscoveredLuredPokemon = function(discovered_lured_pokemon, pokemon, fort
 }
 
 
+/**
+ * @param {array} discovered_pokemon - List of recent Pokemon already encountered
+ *
+ * @returns {array} of recent Pokemon already encountered
+ */
 var removeExpiredPokemon = function(discovered_pokemon)
 {
     var current_time_object = new Date();
@@ -153,6 +252,11 @@ var removeExpiredPokemon = function(discovered_pokemon)
 }
 
 
+/**
+ * @param {array} discovered_lured_pokemon - List of recent Pokemon already encountered
+ *
+ * @returns {array} of recent Pokemon already encountered
+ */
 var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
 {
     var current_time_object = new Date();
@@ -171,6 +275,9 @@ var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
 }
 
 
+/**
+ * @param {array} hb - Payload of data returned by the Pokemon Go API
+ */
 var findPokemon = function(hb) {
     // var fallback_text = "Nearby Pokemon: ";
     var nearby_pokemon_fields = [];
@@ -269,45 +376,3 @@ var findPokemon = function(hb) {
     discovered_lured_pokemon = removeExpiredLuredPokemon(discovered_lured_pokemon);
 
 }
-
-
-// App logic
-
-var pokeio_instance = new PokemonApi.Pokeio();
-pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-    if (err)
-    {
-        console.log(err);
-    }
-});
-
-setInterval(function() {
-    pokeio_instance.Heartbeat(function(err,hb) {
-        var current_time_object = new Date();
-        current_time = current_time_object.getTime();
-        console.log("*** NEW RUN @" + current_time + " ***");
-        if (err)
-        {
-            console.log(err);
-            // Try to log back in
-            pokeio_instance = new PokemonApi.Pokeio();
-            pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-                if (err)
-                {
-                    console.log(err);
-                }
-            });
-        }
-        else
-        {
-            findPokemon(hb);
-        }
-    });
-}, heartbeatTimeInterval);
-
-
-app.get("/",function(req,res) {
-        res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
-});
-
-app.listen(config.port);
