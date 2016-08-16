@@ -39,8 +39,8 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
 setInterval(function() {
     pokeio_instance.Heartbeat(function(err,hb) {
         var current_time_object = new Date();
-        var time = current_time_object.getHours() + ":" + current_time_object.getMinutes();
-        console.log("*** NEW RUN @" + time + " ***");
+        var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
+        console.log("*** NEW RUN @" + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
         var start_time_minutes = getHoursMinutesToMinutes(config.start_time);
         var end_time_minutes = getHoursMinutesToMinutes(config.end_time);
         var current_time_minutes = getHoursMinutesToMinutes(time);
@@ -77,7 +77,7 @@ app.get("/",function(req,res) {
 app.listen(config.port);
 
 
-/***** FUNCATIONS *****/
+/***** FUNCTIONS *****/
 
 /**
  * @param {string} time - A timestamp in the format hh:mm
