@@ -10,10 +10,15 @@ const POKEVISION_URL = "https://pokevision.com/";
 const FASTPOKEMAP_URL = "https://fastpokemap.se/";
 const GOOGLE_MAPS_URL = "https://www.google.com/maps/place/";
 
+const GOOGLE_PROVIDER = "google";
+const POKEMON_TRAINER_CLUB_PROVIDER = "ptc";
+
 const PGO_DISCOVERED_TYPE_WILD = 1;
 const PGO_DISCOVERED_TYPE_LURE = 2;
+
 // This is 3 minutes but added some extra time to prevent duplicates for now.
-const LURE_SPAWN_RATE = (3 * 60 * 1000) + (30 * 1000);
+const LURE_SPAWN_RATE = (3 * 60 * 1000) + (10 * 1000);
+const HEARTBEAT_TIME_INTERVAL = 10 * 1000;
 
 // Store what was already discovered to prevent duplicate messages
 var discovered_pokemon = [];
@@ -26,58 +31,84 @@ try {
     var pokemon_ignore_list = [];
 }
 
-var heartbeatTimeInterval = 10 * 1000;
-
-var pokeio_instance = new PokemonApi.Pokeio();
-pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-    if (err)
-    {
-        console.log(err);
-    }
-});
-
-setInterval(function() {
-    pokeio_instance.Heartbeat(function(err,hb) {
-        var current_time_object = new Date();
-        var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
-        console.log("*** NEW RUN @" + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
-        var start_time_minutes = getHoursMinutesToMinutes(config.start_time);
-        var end_time_minutes = getHoursMinutesToMinutes(config.end_time);
-        var current_time_minutes = getHoursMinutesToMinutes(time);
-        // console.log("Start: " + start_time_minutes + " End: " + end_time_minutes + " Current: " + current_time_minutes);
-        if (current_time_minutes < start_time_minutes
-            || current_time_minutes > end_time_minutes)
-        {
-            console.log("[i] Current Time is " + time + ". Reporting will be online between " + config.start_time + " and " + config.end_time);
-        }
-        else if (err)
-        {
-            console.log(err);
-            // Try to log back in
-            pokeio_instance = new PokemonApi.Pokeio();
-            pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
-                if (err)
-                {
-                    console.log(err);
-                }
-            });
-        }
-        else
-        {
-            findPokemon(hb);
-        }
-    });
-}, heartbeatTimeInterval);
-
-
-app.get("/",function(req,res) {
-        res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
-});
-
-app.listen(config.port);
+// Set default start and end time values if they don't exist
+if (!config.start_time)
+{
+    config.start_time = "00:00";
+}
+if (!config.end_time)
+{
+    config.end_time = "24:00";
+}
 
 
 /***** FUNCTIONS *****/
+
+
+/**
+ * @param {object} config - Data necessary to run the app
+ * @returns {boolean} whether or not the given config is valid
+ */
+var isConfigValid = function(config)
+{
+    if (!config.username
+        || !config.password
+        || !isProviderValid(config.provider)
+        || !config.slack_request_url
+        || !config.port
+        || !config.start_time
+        || !config.end_time
+        || !isLocationValid(config.location))
+    {
+        return false;
+    }
+    return true;
+}
+
+
+/**
+ * @param {string} provider - The provider to log into
+ * @returns {boolean} whether or not the given provider is valid
+ */
+var isProviderValid = function(provider)
+{
+    if (provider != POKEMON_TRAINER_CLUB_PROVIDER
+        && provider != GOOGLE_PROVIDER)
+    {
+        return false;
+    }
+    return true;
+}
+
+
+/**
+ * @param {object} location - Location data
+ * @returns {boolean} whether or not the given location is valid
+ */
+var isLocationValid = function(location)
+{
+    switch(location.type)
+    {
+        case "coords":
+            if (!location.coords.latitude
+            || !location.coords.longitude
+            || !location.coords.altitude)
+            {
+                return false;
+            }
+            break;
+        case "name":
+            if (!location.name)
+            {
+                return false;
+            }
+            break;
+        default:
+            return false;
+    }
+    return true;
+}
+
 
 /**
  * @param {string} time - A timestamp in the format hh:mm
@@ -90,10 +121,10 @@ var getHoursMinutesToMinutes = function(time)
 
 
 /**
- * @param {float} lat1 - 
- * @param {float} long1 - 
- * @param {float} lat2 - 
- * @param {float} long2 - 
+ * @param {float} lat1 - First latitude in degrees
+ * @param {float} long1 - First longitude in degrees
+ * @param {float} lat2 - Second latitude in degrees
+ * @param {float} long2 - Second longitude in degrees
  * 
  * @ returns {float} Distance between 2 GPS coordinates in meters
  */
@@ -329,8 +360,8 @@ var findPokemon = function(hb) {
         if (hb.cells[i].WildPokemon[0])
         // if (hb.cells[i].MapPokemon[0])
         {
-            // for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
-            for (var j = hb.cells[i].MapPokemon.length - 1; j >= 0; j--)
+            for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
+            // for (var j = hb.cells[i].MapPokemon.length - 1; j >= 0; j--)
             {
                 var wildPokemon = hb.cells[i].WildPokemon[j];
                 // var wildPokemon = hb.cells[i].MapPokemon[j];
@@ -376,3 +407,60 @@ var findPokemon = function(hb) {
     discovered_lured_pokemon = removeExpiredLuredPokemon(discovered_lured_pokemon);
 
 }
+
+
+/***** APP LOGIC *****/
+
+// Exit the app if the config is invalid
+if (!isConfigValid(config))
+{
+    console.log("Invalid config.json file!");
+    process.exit(1);
+}
+
+var pokeio_instance = new PokemonApi.Pokeio();
+pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+    if (err)
+    {
+        console.log(err);
+    }
+});
+
+setInterval(function() {
+    pokeio_instance.Heartbeat(function(err,hb) {
+        var current_time_object = new Date();
+        var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
+        console.log("*** NEW RUN @" + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
+        var start_time_minutes = getHoursMinutesToMinutes(config.start_time);
+        var end_time_minutes = getHoursMinutesToMinutes(config.end_time);
+        var current_time_minutes = getHoursMinutesToMinutes(time);
+        if (current_time_minutes < start_time_minutes
+            || current_time_minutes > end_time_minutes)
+        {
+            console.log("[i] Current Time is " + time + ". Reporting will be online between " + config.start_time + " and " + config.end_time);
+        }
+        else if (err)
+        {
+            console.log(err);
+            // Try to log back in
+            pokeio_instance = new PokemonApi.Pokeio();
+            pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
+                if (err)
+                {
+                    console.log(err);
+                }
+            });
+        }
+        else
+        {
+            findPokemon(hb);
+        }
+    });
+}, HEARTBEAT_TIME_INTERVAL);
+
+
+app.get("/",function(req,res) {
+        res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
+});
+
+app.listen(config.port);
