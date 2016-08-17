@@ -47,6 +47,7 @@ if (!config.end_time)
 
 /**
  * @param {object} config - Data necessary to run the app
+ * 
  * @returns {boolean} whether or not the given config is valid
  */
 var isConfigValid = function(config)
@@ -68,6 +69,7 @@ var isConfigValid = function(config)
 
 /**
  * @param {string} provider - The provider to log into
+ * 
  * @returns {boolean} whether or not the given provider is valid
  */
 var isProviderValid = function(provider)
@@ -83,6 +85,7 @@ var isProviderValid = function(provider)
 
 /**
  * @param {object} location - Location data
+ * 
  * @returns {boolean} whether or not the given location is valid
  */
 var isLocationValid = function(location)
@@ -111,7 +114,11 @@ var isLocationValid = function(location)
 
 
 /**
+ * Takes a hh:mm timestamp and converts it to just minutes
+ *
  * @param {string} time - A timestamp in the format hh:mm
+ * 
+ * @returns {number} of minutes
  */
 var getHoursMinutesToMinutes = function(time)
 {
@@ -121,12 +128,12 @@ var getHoursMinutesToMinutes = function(time)
 
 
 /**
- * @param {float} lat1 - First latitude in degrees
- * @param {float} long1 - First longitude in degrees
- * @param {float} lat2 - Second latitude in degrees
- * @param {float} long2 - Second longitude in degrees
+ * @param {number} lat1 - First latitude in degrees
+ * @param {number} long1 - First longitude in degrees
+ * @param {number} lat2 - Second latitude in degrees
+ * @param {number} long2 - Second longitude in degrees
  * 
- * @ returns {float} Distance between 2 GPS coordinates in meters
+ * @ returns {number} Distance between 2 GPS coordinates in meters
  */
 var distanceBetweenCoordinates = function(lat1, long1, lat2, long2)
 {
@@ -149,8 +156,10 @@ var distanceBetweenCoordinates = function(lat1, long1, lat2, long2)
 
 
 /**
+ * Posts the found Pokemon to Slack
+ *
  * @param {string} slack_url - Slack incoming webhook url
- * @param {array} nearby_pokemon_fields - Array of Slack attachment objects
+ * @param {object[]} nearby_pokemon_fields - Array of Slack attachment objects
  */
 var postToSlack = function(slack_url, nearby_pokemon_fields)
 {
@@ -176,12 +185,14 @@ var postToSlack = function(slack_url, nearby_pokemon_fields)
 
 
 /**
- * @param {string} nearby_pokemon_fields - Array of Slack attachment objects
+ * Adds a new entry to the list of Pokemon to notify users of in this iteration
+ *
+ * @param {object[]} nearby_pokemon_fields - Array of Slack attachment objects
  * @param {object} pokemon - Generic info about a Pokemon
- * @param {float} latitude - Latitude location of Pokemon in degrees
- * @param {float} longitude - Longitude location of Pokemon in degrees
+ * @param {number} latitude - Latitude location of Pokemon in degrees
+ * @param {number} longitude - Longitude location of Pokemon in degrees
  * 
- * @returns {array} of Slack attachment objects
+ * @returns {object[]} of Slack attachment objects
  */
 var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, latitude, longitude)
 {
@@ -207,11 +218,13 @@ var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, latitude, longit
 
 
 /**
- * @param {array} discovered_pokemon - List of recent Pokemon already encountered
+ * Adds to a list of Pokemon that were already discovered
+ *
+ * @param {object[]} discovered_pokemon - List of recent Pokemon already encountered
  * @param {object} pokemon - Generic info about a Pokemon
  * @param {object} wildPokemon - Instance specific info about the encountered Pokemon
  *
- * @returns {array} of recent Pokemon already encountered
+ * @returns {object[]} of recent Pokemon already encountered
  */
 var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
 {
@@ -235,11 +248,13 @@ var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
 
 
 /**
- * @param {array} discovered_lured_pokemon - List of recent Pokemon already encountered
+ * Adds to a list of Lured Pokemon that were already discovered
+ *
+ * @param {object[]} discovered_lured_pokemon - List of recent Pokemon already encountered
  * @param {object} pokemon - Generic info about a Pokemon
  * @param {object} fort - Instance specific info about the nearby Fort/PokeStop
  *
- * @returns {array} of recent Pokemon already encountered
+ * @returns {object[]} of recent Pokemon already encountered
  */
 var addDiscoveredLuredPokemon = function(discovered_lured_pokemon, pokemon, fort)
 {
@@ -261,9 +276,11 @@ var addDiscoveredLuredPokemon = function(discovered_lured_pokemon, pokemon, fort
 
 
 /**
- * @param {array} discovered_pokemon - List of recent Pokemon already encountered
+ * Removed any expired entries from the discovered list
  *
- * @returns {array} of recent Pokemon already encountered
+ * @param {object[]} discovered_pokemon - List of recent Pokemon already encountered
+ *
+ * @returns {object[]} of recent Pokemon already encountered
  */
 var removeExpiredPokemon = function(discovered_pokemon)
 {
@@ -284,9 +301,11 @@ var removeExpiredPokemon = function(discovered_pokemon)
 
 
 /**
- * @param {array} discovered_lured_pokemon - List of recent Pokemon already encountered
+ * Removes any expired entries from the discovered list for Lure Pokemon
  *
- * @returns {array} of recent Pokemon already encountered
+ * @param {object[]} discovered_lured_pokemon - List of recent Pokemon already encountered
+ *
+ * @returns {object[]} of recent Pokemon already encountered
  */
 var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
 {
@@ -307,7 +326,9 @@ var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
 
 
 /**
- * @param {array} hb - Payload of data returned by the Pokemon Go API
+ * Finds and sends notifications for nearby Pokemon
+ *
+ * @param {object[]} hb - Payload of data returned by the Pokemon Go API
  */
 var findPokemon = function(hb) {
     // var fallback_text = "Nearby Pokemon: ";
