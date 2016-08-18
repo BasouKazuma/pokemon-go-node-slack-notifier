@@ -3,6 +3,9 @@
 ## Purpose
 To get notifications sent to Slack for Pokemon nearby a specified location. Works great for an office or school!
 
+## Screenshot
+![Pokemon Go Slack Notifier](http://i.imgur.com/aCx8hwK.png)
+
 ## Features
   * Nearby Pokemon notifications, including lured (Done)
   * Display location of the Pokemon on FastPokeMap / Google Maps (Done)
