@@ -5,14 +5,11 @@ var config = require('./config.json');
 var PgoNotifierConfigValidator = require('./PgoNotifierConfigValidator.js');
 var PgoNotifierHelper = require('./PgoNotifierHelper.js');
 var pgo_notifier_helper = new PgoNotifierHelper();
+var PgoNotifierSlack = require('./PgoNotifierSlack.js');
 
 var request = require('request');
 var express = require("express");
 var app = express();
-
-const POKEVISION_URL = "https://pokevision.com/";
-const FASTPOKEMAP_URL = "https://fastpokemap.se/";
-const GOOGLE_MAPS_URL = "https://www.google.com/maps/place/";
 
 const PGO_DISCOVERED_TYPE_WILD = 1;
 const PGO_DISCOVERED_TYPE_LURE = 2;
@@ -51,68 +48,6 @@ if (!config_validator.isConfigValid())
 }
 
 /***** FUNCTIONS *****/
-
-
-/**
- * Posts the found Pokemon to Slack
- *
- * @param {string} slack_url - Slack incoming webhook url
- * @param {object[]} nearby_pokemon_fields - Array of Slack attachment objects
- */
-var postToSlack = function(slack_url, nearby_pokemon_fields)
-{
-    var slack_data = {
-        username: "Pokemon Go",
-        icon_url: "http://i.imgur.com/10m9yIQ.png",
-        attachments: nearby_pokemon_fields
-    };
-    request.post(
-        {
-            url: slack_url,
-            json: true,
-            headers: {
-               "content-type": "application/json",
-            },
-            body: slack_data
-        }, 
-        function(error, response, body) {
-            console.log(body);
-        }
-    );
-}
-
-
-/**
- * Adds a new entry to the list of Pokemon to notify users of in this iteration
- *
- * @param {object[]} nearby_pokemon_fields - Array of Slack attachment objects
- * @param {object} pokemon - Generic info about a Pokemon
- * @param {number} latitude - Latitude location of Pokemon in degrees
- * @param {number} longitude - Longitude location of Pokemon in degrees
- * 
- * @returns {object[]} of Slack attachment objects
- */
-var addNearbyPokemon = function(nearby_pokemon_fields, pokemon, latitude, longitude)
-{
-    nearby_pokemon_fields.push(
-        {
-            fallback: pokemon.name + " is nearby!",
-            title: pokemon.name,
-            text:  pokemon.name + " is nearby. Go catch it already!\n " +
-                //"<" + POKEVISION_URL + "#/@" + latitude +"," + longitude + "|Pokevision>" + 
-                "<" + FASTPOKEMAP_URL + "#" + latitude +"," + longitude + "|FastPokeMap>" + 
-                " | " +
-                " <" + GOOGLE_MAPS_URL + latitude +"," + longitude +"|Google Maps>",
-            // thumb_url: "https://ugc.pokevision.com/images/pokemon/" + pokemon.id + ".png",
-            // thumb_url: "http://sprites.pokecheck.org/i/" + pokemon.num + ".gif",
-            // thumb_url: "http://www.pkparaiso.com/imagenes/xy/sprites/pokemon/" + pokemon.num + ".png",
-            thumb_url: "http://pokedream.com/pokedex/images/sugimori/" + pokemon.num + ".jpg",
-            short: false
-        }
-    );
-    console.log('[i] Added notification for ' + pokemon.name);
-    return nearby_pokemon_fields;
-}
 
 
 /**
@@ -230,7 +165,7 @@ var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
  */
 var findPokemon = function(hb) {
     // var fallback_text = "Nearby Pokemon: ";
-    var nearby_pokemon_fields = [];
+    var pgo_notifier_slack = new PgoNotifierSlack(config.slack_request_url);
 
     for (var i = hb.cells.length - 1; i >= 0; i--)
     {
@@ -270,7 +205,7 @@ var findPokemon = function(hb) {
                 if (notify_pokemon == true)
                 {
                     console.log("Fort is " + distance_from_fort + " meters away");
-                    nearby_pokemon_fields = addNearbyPokemon(nearby_pokemon_fields, pokemon, fort.Latitude, fort.Longitude);
+                    pgo_notifier_slack.addNearbyPokemon(pokemon, fort.Latitude, fort.Longitude);
                     discovered_lured_pokemon = addDiscoveredLuredPokemon(discovered_lured_pokemon, pokemon, fort);
                 }
             }
@@ -311,17 +246,14 @@ var findPokemon = function(hb) {
                 if (notify_pokemon == true)
                 {
                     // fallback_text += pokemon.name + ' |';
-                    nearby_pokemon_fields = addNearbyPokemon(nearby_pokemon_fields, pokemon, wildPokemon.Latitude, wildPokemon.Longitude);
+                    pgo_notifier_slack.addNearbyPokemon(pokemon, wildPokemon.Latitude, wildPokemon.Longitude);
                     discovered_pokemon = addDiscoveredPokemon(discovered_pokemon, pokemon, wildPokemon);
                 }
             } 
         }
     }
 
-    if (nearby_pokemon_fields.length > 0)
-    {
-        postToSlack(config.slack_request_url, nearby_pokemon_fields);
-    }
+    pgo_notifier_slack.postToSlack(config.slack_request_url);
     discovered_pokemon = removeExpiredPokemon(discovered_pokemon);
     discovered_lured_pokemon = removeExpiredLuredPokemon(discovered_lured_pokemon);
 
