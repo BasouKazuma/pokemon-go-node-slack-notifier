@@ -3,6 +3,8 @@ var PokemonApi = require('pokemon-go-node-api');
 // Required user generated config file
 var config = require('./config.json');
 var PgoNotifierConfigValidator = require('./PgoNotifierConfigValidator.js');
+var PgoNotifierHelper = require('./PgoNotifierHelper.js');
+var pgo_notifier_helper = new PgoNotifierHelper();
 
 var request = require('request');
 var express = require("express");
@@ -41,7 +43,7 @@ if (!config.end_time)
 }
 
 // Exit the app if the config is invalid
-config_validator = new PgoNotifierConfigValidator(config);
+var config_validator = new PgoNotifierConfigValidator(config);
 if (!config_validator.isConfigValid())
 {
     console.log("Invalid config.json file!");
@@ -49,48 +51,6 @@ if (!config_validator.isConfigValid())
 }
 
 /***** FUNCTIONS *****/
-
-
-/**
- * Takes a hh:mm timestamp and converts it to just minutes
- *
- * @param {string} time - A timestamp in the format hh:mm
- * 
- * @returns {number} of minutes
- */
-var getHoursMinutesToMinutes = function(time)
-{
-    var time_array = time.split(":");
-    return parseInt(time_array[0]) * 60 + parseInt(time_array[1]);
-}
-
-
-/**
- * @param {number} lat1 - First latitude in degrees
- * @param {number} long1 - First longitude in degrees
- * @param {number} lat2 - Second latitude in degrees
- * @param {number} long2 - Second longitude in degrees
- * 
- * @ returns {number} Distance between 2 GPS coordinates in meters
- */
-var distanceBetweenCoordinates = function(lat1, long1, lat2, long2)
-{
-    var R = 6371e3; // metres
-    var radians_lat1 = Math.PI * lat1/180;
-    var radians_lat2 = Math.PI * lat2/180;
-    var radians_long1 = Math.PI * long1/180;
-    var radians_long2 = Math.PI * long2/180;
-    var delta_lat = radians_lat2 - radians_lat1;
-    var delta_long = radians_long2 - radians_long1;
-
-    var a = Math.sin(delta_lat/2) * Math.sin(delta_lat/2) +
-            Math.cos(radians_lat1) * Math.cos(radians_lat2) *
-            Math.sin(delta_long/2) * Math.sin(delta_long/2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    var d = R * c;
-    return d;
-}
 
 
 /**
@@ -279,7 +239,7 @@ var findPokemon = function(hb) {
         {
             var fort = hb.cells[i].Fort[n];
             var notify_pokemon = true;
-            var distance_from_fort = distanceBetweenCoordinates(
+            var distance_from_fort = pgo_notifier_helper.distanceBetweenCoordinates(
                     fort.Latitude,
                     fort.Longitude,
                     config.location.coords.latitude,
@@ -384,9 +344,9 @@ setInterval(function() {
         var current_time_object = new Date();
         var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
         console.log("*** NEW RUN @" + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
-        var start_time_minutes = getHoursMinutesToMinutes(config.start_time);
-        var end_time_minutes = getHoursMinutesToMinutes(config.end_time);
-        var current_time_minutes = getHoursMinutesToMinutes(time);
+        var start_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(config.start_time);
+        var end_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(config.end_time);
+        var current_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(time);
         if (current_time_minutes < start_time_minutes
             || current_time_minutes > end_time_minutes)
         {
