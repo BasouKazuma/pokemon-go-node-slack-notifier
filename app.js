@@ -2,6 +2,8 @@ var PokemonApi = require('pokemon-go-node-api');
 
 // Required user generated config file
 var config = require('./config.json');
+var PgoNotifierConfigValidator = require('./PgoNotifierConfigValidator.js');
+
 var request = require('request');
 var express = require("express");
 var app = express();
@@ -9,9 +11,6 @@ var app = express();
 const POKEVISION_URL = "https://pokevision.com/";
 const FASTPOKEMAP_URL = "https://fastpokemap.se/";
 const GOOGLE_MAPS_URL = "https://www.google.com/maps/place/";
-
-const GOOGLE_PROVIDER = "google";
-const POKEMON_TRAINER_CLUB_PROVIDER = "ptc";
 
 const PGO_DISCOVERED_TYPE_WILD = 1;
 const PGO_DISCOVERED_TYPE_LURE = 2;
@@ -41,76 +40,15 @@ if (!config.end_time)
     config.end_time = "24:00";
 }
 
+// Exit the app if the config is invalid
+config_validator = new PgoNotifierConfigValidator(config);
+if (!config_validator.isConfigValid())
+{
+    console.log("Invalid config.json file!");
+    process.exit(1);
+}
 
 /***** FUNCTIONS *****/
-
-
-/**
- * @param {object} config - Data necessary to run the app
- * 
- * @returns {boolean} whether or not the given config is valid
- */
-var isConfigValid = function(config)
-{
-    if (!config.username
-        || !config.password
-        || !isProviderValid(config.provider)
-        || !config.slack_request_url
-        || !config.port
-        || !config.start_time
-        || !config.end_time
-        || !isLocationValid(config.location))
-    {
-        return false;
-    }
-    return true;
-}
-
-
-/**
- * @param {string} provider - The provider to log into
- * 
- * @returns {boolean} whether or not the given provider is valid
- */
-var isProviderValid = function(provider)
-{
-    if (provider != POKEMON_TRAINER_CLUB_PROVIDER
-        && provider != GOOGLE_PROVIDER)
-    {
-        return false;
-    }
-    return true;
-}
-
-
-/**
- * @param {object} location - Location data
- * 
- * @returns {boolean} whether or not the given location is valid
- */
-var isLocationValid = function(location)
-{
-    switch(location.type)
-    {
-        case "coords":
-            if (!location.coords.latitude
-            || !location.coords.longitude
-            || !location.coords.altitude)
-            {
-                return false;
-            }
-            break;
-        case "name":
-            if (!location.name)
-            {
-                return false;
-            }
-            break;
-        default:
-            return false;
-    }
-    return true;
-}
 
 
 /**
@@ -432,12 +370,6 @@ var findPokemon = function(hb) {
 
 /***** APP LOGIC *****/
 
-// Exit the app if the config is invalid
-if (!isConfigValid(config))
-{
-    console.log("Invalid config.json file!");
-    process.exit(1);
-}
 
 var pokeio_instance = new PokemonApi.Pokeio();
 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
