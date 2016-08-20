@@ -29,16 +29,6 @@ try {
     var pokemon_ignore_list = [];
 }
 
-// Set default start and end time values if they don't exist
-if (!config.start_time)
-{
-    config.start_time = "00:00";
-}
-if (!config.end_time)
-{
-    config.end_time = "24:00";
-}
-
 // Exit the app if the config is invalid
 var config_validator = new PgoNotifierConfigValidator(config);
 if (!config_validator.isConfigValid())
@@ -227,7 +217,7 @@ var findPokemon = function(hb) {
                     pgo_notifier_slack.addNearbyPokemon(pokemon, wildPokemon.Latitude, wildPokemon.Longitude);
                     discovered_pokemon_list = addDiscoveredPokemon(discovered_pokemon_list, pokemon, wildPokemon);
                 }
-            } 
+            }
         }
     }
 
@@ -253,12 +243,8 @@ setInterval(function() {
     pokeio_instance.Heartbeat(function(err,hb) {
         var current_time_object = new Date();
         var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
-        console.log("*** NEW RUN @" + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
-        var start_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(config.start_time);
-        var end_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(config.end_time);
-        var current_time_minutes = pgo_notifier_helper.getHoursMinutesToMinutes(time);
-        if (current_time_minutes < start_time_minutes
-            || current_time_minutes > end_time_minutes)
+        console.log("*** NEW RUN @ " + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
+        if (!config_validator.withinTimeWindow(time))
         {
             console.log("[i] Current Time is " + time + ". Reporting will be online between " + config.start_time + " and " + config.end_time);
         }
