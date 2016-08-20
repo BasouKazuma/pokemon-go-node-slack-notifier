@@ -17,7 +17,7 @@ function PgoNotifierConfigValidator(config)
           || !this.config.password
           || !this.isProviderValid(config.provider)
           || !this.config.slack_request_url
-          || !this.config.port
+          // || !this.config.port // optional
           || !this.config.start_time
           || !this.config.end_time
           || !this.isLocationValid(config.location))
