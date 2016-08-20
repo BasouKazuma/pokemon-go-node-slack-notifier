@@ -7,13 +7,13 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
 ![Pokemon Go Slack Notifier](http://i.imgur.com/aCx8hwK.png)
 
 ## Features
-  * Nearby Pokemon notifications, including lured (Done)
-  * Display location of the Pokemon on FastPokeMap / Google Maps (Done)
-  * Display the Pokemon's expiration date (TODO)
-  * Ignore list for unwanted Pokemon (Done, static config for now)
-  * Specify a start and end time for receiving notifications (Done)
-  * Command to add/remove Pokemon to the ignore list (TODO)
-  * Command to change the location (TODO)
+- [x] Nearby Pokemon notifications, including lured
+- [x] Display location of the Pokemon on FastPokeMap / Google Maps
+- [x] Ignore list for unwanted Pokemon (static config for now)
+- [x] Specify a start and end time for receiving notifications
+- [ ] Display the Pokemon's expiration date
+- [ ] Command to add/remove Pokemon to the ignore list
+- [ ] Command to change the location
 
 ## Known Issues
   * May report Pokemon that are a little out of range
@@ -24,18 +24,49 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
   * npm
   * git
 
+## Recommendations
+ * Use a dummy account for authenticating with Google or Pokemon Trainer Club
+
 ## Installation and Setup
   * Install the above requirements
   * Get a copy of the repo
   * Install the npm dependencies
   * Set up an Incoming WebHook Integration for your Slack user or channel
   * Create a config.json based on a copy of a sample config
-    * [config.sample1.json](./config.sample1.json) shows how to use a Google account and a GPS coordinate 
-    * [config.sample2.json](./config.sample2.json) shows how to use a Pokemon Trainer Club account and a mailing address
+    * [config.sample1.json](./config.sample1.json) shows how to use a Google account and a GPS coordinate
+    * [config.sample2.json](./config.sample2.json) shows how to use a Pokemon Trainer Club account, a mailing address, and time windowing
   * (Optional) Create an ignore_list.js based on a copy of the [ignore_list.sample.js](./ignore_list.sample.js) if you want to ignore certain Pokemon
   * Run "node app.js" to start the notifier
 
-## Recommendations
- * Use a dummy account for authenticating with Google or Pokemon Trainer Club
+## Config Parameters (nested)
+### Authentication
+  * `username` - Username for the selected account provider
+  * `password` - Password for the selected account provider
+  * `provider` - Either `google` or `ptc` (Pokemon Trainer Club)
+
+### Slack Webhook
+  * `slack_request_url` - Slack Incoming Webhook url from your slack integration
+
+### Webserver (optional)
+  * `port` - An open port the app can listen on for incoming Slack commands
+
+### Time Windowing (optional)
+  * `start_time` - The time in which to start scanning each day in h:mm format
+  * `end_time` - The time in which to stop scanning each day in h:mm format
+
+### Location (choose one type)
+#### Coordinates
+  * `location` - An object containing the location data
+    * `type` - `coords`
+    * `coords` - And object containing the GPS coordinates of the location you wish to scan from
+      * `latitude` - The latitude in decimal degrees
+      * `longitude` - The longitude in decimal degrees
+      * `altitude` - The altitude in decimal degrees
+
+#### Address
+  * `location` - An object containing the location data
+    * `type` - `name`
+    * `name` - The address or name of the location you wish to scan from
+  * `false`
 
 Thanks to Armax, the creator of [Pokemon-GO-node-api](https://github.com/Armax/Pokemon-GO-node-api) which this project uses for interfacing with the Pokemon Go API.

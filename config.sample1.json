@@ -3,9 +3,6 @@
     "password": "changeme",
     "provider": "google",
     "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
-    "port": 80,
-    "start_time": "8:00",
-    "end_time": "22:00",
     "location": {
         "type": "coords",
         "coords": {
