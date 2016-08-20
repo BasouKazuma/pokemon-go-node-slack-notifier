@@ -6,6 +6,8 @@ var PgoNotifierConfigValidator = require('./PgoNotifierConfigValidator.js');
 var PgoNotifierHelper = require('./PgoNotifierHelper.js');
 var pgo_notifier_helper = new PgoNotifierHelper();
 var PgoNotifierSlack = require('./PgoNotifierSlack.js');
+var PgoNotifierDiscoveredPokemon = require('./PgoNotifierDiscoveredPokemon.js');
+var PgoNotifierDiscoveredLuredPokemon = require('./PgoNotifierDiscoveredLuredPokemon.js');
 
 var request = require('request');
 var express = require("express");
@@ -14,13 +16,11 @@ var app = express();
 const PGO_DISCOVERED_TYPE_WILD = 1;
 const PGO_DISCOVERED_TYPE_LURE = 2;
 
-// This is 3 minutes but added some extra time to prevent duplicates for now.
-const LURE_SPAWN_RATE = (3 * 60 * 1000) + (10 * 1000);
 const HEARTBEAT_TIME_INTERVAL = 10 * 1000;
 
 // Store what was already discovered to prevent duplicate messages
-var discovered_pokemon = [];
-var discovered_lured_pokemon = [];
+var discovered_pokemon_list = [];
+var discovered_lured_pokemon_list = [];
 
 // Optional list of Pokemon to suppress notifications for
 try {
@@ -53,108 +53,86 @@ if (!config_validator.isConfigValid())
 /**
  * Adds to a list of Pokemon that were already discovered
  *
- * @param {object[]} discovered_pokemon - List of recent Pokemon already encountered
+ * @param {object[]} discovered_pokemon_list - List of recent Pokemon already encountered
  * @param {object} pokemon - Generic info about a Pokemon
  * @param {object} wildPokemon - Instance specific info about the encountered Pokemon
  *
  * @returns {object[]} of recent Pokemon already encountered
  */
-var addDiscoveredPokemon = function(discovered_pokemon, pokemon, wildPokemon)
+var addDiscoveredPokemon = function(discovered_pokemon_list, pokemon, wildPokemon)
 {
-    var current_time_object = new Date();
-    current_time = current_time_object.getTime();
-    discovered_pokemon.push(
-        {
-            type: PGO_DISCOVERED_TYPE_WILD,
-            pokemon: pokemon,
-            encounter_id: wildPokemon.EncounterId,
-            time_remaining: wildPokemon.TimeTillHiddenMs,
-            // time_remaining: wildPokemon.ExpirationTimeMs.toString() - current_time,
-            // time_expires: wildPokemon.TimeTillHiddenMs + current_time,
-            // time_expires: wildPokemon.ExpirationTimeMs.toString(),
-            time_added: current_time
-        }
-    );
+    var discovered_pokemon = new PgoNotifierDiscoveredPokemon(pokemon, wildPokemon);
+    discovered_pokemon_list.push(discovered_pokemon);
     console.log('[i] Added discovery entry for ' + pokemon.name);
-    return discovered_pokemon;
+    return discovered_pokemon_list;
 }
 
 
 /**
  * Adds to a list of Lured Pokemon that were already discovered
  *
- * @param {object[]} discovered_lured_pokemon - List of recent Pokemon already encountered
+ * @param {object[]} discovered_lured_pokemon_list - List of recent Pokemon already encountered
  * @param {object} pokemon - Generic info about a Pokemon
  * @param {object} fort - Instance specific info about the nearby Fort/PokeStop
  *
  * @returns {object[]} of recent Pokemon already encountered
  */
-var addDiscoveredLuredPokemon = function(discovered_lured_pokemon, pokemon, fort)
+var addDiscoveredLuredPokemon = function(discovered_lured_pokemon_list, pokemon, fort)
 {
-    var current_time_object = new Date();
-    current_time = current_time_object.getTime();
-    // var lure_time_remaining = fort.LureInfo.LureExpiresTimestampMs.toString() - current_time;
-    // var time_remaining = lure_time_remaining % LURE_SPAWN_RATE;
-    discovered_lured_pokemon.push(
-        {
-            pokemon: pokemon,
-            fort_id: fort.FortId,
-            time_remaining: LURE_SPAWN_RATE,
-            time_added: current_time
-        }
-    );
+    var discovered_lured_pokemon = new PgoNotifierDiscoveredLuredPokemon(pokemon, fort);
+    discovered_lured_pokemon_list.push(discovered_lured_pokemon);
     console.log('[i] LURED: Added discovery entry for ' + pokemon.name);
-    return discovered_lured_pokemon;
+    return discovered_lured_pokemon_list;
 }
 
 
 /**
  * Removed any expired entries from the discovered list
  *
- * @param {object[]} discovered_pokemon - List of recent Pokemon already encountered
+ * @param {object[]} discovered_pokemon_list - List of recent Pokemon already encountered
  *
  * @returns {object[]} of recent Pokemon already encountered
  */
-var removeExpiredPokemon = function(discovered_pokemon)
+var removeExpiredPokemon = function(discovered_pokemon_list)
 {
     var current_time_object = new Date();
     current_time = current_time_object.getTime();
-    for (var m = discovered_pokemon.length - 1; m >= 0; m--)
+    for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
     {
-        var expiry_time = discovered_pokemon[m].time_added + discovered_pokemon[m].time_remaining;
+        var expiry_time = discovered_pokemon_list[m].time_added + discovered_pokemon_list[m].time_remaining;
         if (expiry_time < current_time)
         {
-            var pokemon = discovered_pokemon[m].pokemon;
-            discovered_pokemon.splice(m, 1);
+            var pokemon = discovered_pokemon_list[m].pokemon;
+            discovered_pokemon_list.splice(m, 1);
             console.log('[i] Removed stale discovery entry for ' + pokemon.name);
         }
     }
-    return discovered_pokemon;
+    return discovered_pokemon_list;
 }
 
 
 /**
  * Removes any expired entries from the discovered list for Lure Pokemon
  *
- * @param {object[]} discovered_lured_pokemon - List of recent Pokemon already encountered
+ * @param {object[]} discovered_lured_pokemon_list - List of recent Pokemon already encountered
  *
  * @returns {object[]} of recent Pokemon already encountered
  */
-var removeExpiredLuredPokemon = function(discovered_lured_pokemon)
+var removeExpiredLuredPokemon = function(discovered_lured_pokemon_list)
 {
     var current_time_object = new Date();
     current_time = current_time_object.getTime();
-    for (var m = discovered_lured_pokemon.length - 1; m >= 0; m--)
+    for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
     {
-        var expiry_time = discovered_lured_pokemon[m].time_added + discovered_lured_pokemon[m].time_remaining;
+        var expiry_time = discovered_lured_pokemon_list[m].time_added + discovered_lured_pokemon_list[m].time_remaining;
         if (expiry_time < current_time)
         {
-            var pokemon = discovered_lured_pokemon[m].pokemon;
-            discovered_lured_pokemon.splice(m, 1);
+            var pokemon = discovered_lured_pokemon_list[m].pokemon;
+            discovered_lured_pokemon_list.splice(m, 1);
             console.log('[i] LURED: Removed stale discovery entry for ' + pokemon.name);
         }
     }
-    return discovered_lured_pokemon;
+    return discovered_lured_pokemon_list;
 }
 
 
@@ -193,10 +171,10 @@ var findPokemon = function(hb) {
                     }
                 }
 
-                for (var m = discovered_lured_pokemon.length - 1; m >= 0; m--)
+                for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
                 {
-                    if (discovered_lured_pokemon[m].fort_id == fort.FortId
-                        && discovered_lured_pokemon[m].pokemon.id == pokemon.id)
+                    if (discovered_lured_pokemon_list[m].fort_id == fort.FortId
+                        && discovered_lured_pokemon_list[m].pokemon.id == pokemon.id)
                     {
                         notify_pokemon = false;
                     }
@@ -204,9 +182,9 @@ var findPokemon = function(hb) {
 
                 if (notify_pokemon == true)
                 {
-                    console.log("Fort is " + distance_from_fort + " meters away");
+                    // console.log("Fort is " + distance_from_fort + " meters away");
                     pgo_notifier_slack.addNearbyPokemon(pokemon, fort.Latitude, fort.Longitude);
-                    discovered_lured_pokemon = addDiscoveredLuredPokemon(discovered_lured_pokemon, pokemon, fort);
+                    discovered_lured_pokemon_list = addDiscoveredLuredPokemon(discovered_lured_pokemon_list, pokemon, fort);
                 }
             }
         }
@@ -233,11 +211,11 @@ var findPokemon = function(hb) {
                     }
                 }
                 
-                for (var m = discovered_pokemon.length - 1; m >= 0; m--)
+                for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
                 {
-                    if (discovered_pokemon[m].encounter_id.low == wildPokemon.EncounterId.low &&
-                        discovered_pokemon[m].encounter_id.high == wildPokemon.EncounterId.high &&
-                        discovered_pokemon[m].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
+                    if (discovered_pokemon_list[m].encounter_id.low == wildPokemon.EncounterId.low &&
+                        discovered_pokemon_list[m].encounter_id.high == wildPokemon.EncounterId.high &&
+                        discovered_pokemon_list[m].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
                     {
                         notify_pokemon = false;
                     }
@@ -247,15 +225,15 @@ var findPokemon = function(hb) {
                 {
                     // fallback_text += pokemon.name + ' |';
                     pgo_notifier_slack.addNearbyPokemon(pokemon, wildPokemon.Latitude, wildPokemon.Longitude);
-                    discovered_pokemon = addDiscoveredPokemon(discovered_pokemon, pokemon, wildPokemon);
+                    discovered_pokemon_list = addDiscoveredPokemon(discovered_pokemon_list, pokemon, wildPokemon);
                 }
             } 
         }
     }
 
     pgo_notifier_slack.postToSlack(config.slack_request_url);
-    discovered_pokemon = removeExpiredPokemon(discovered_pokemon);
-    discovered_lured_pokemon = removeExpiredLuredPokemon(discovered_lured_pokemon);
+    discovered_pokemon_list = removeExpiredPokemon(discovered_pokemon_list);
+    discovered_lured_pokemon_list = removeExpiredLuredPokemon(discovered_lured_pokemon_list);
 
 }
 
