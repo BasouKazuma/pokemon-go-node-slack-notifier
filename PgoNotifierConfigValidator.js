@@ -129,10 +129,8 @@ function PgoNotifierConfigValidator(config)
         if (current_time_minutes < start_time_minutes
             || current_time_minutes > end_time_minutes)
         {
-            console.log("withinTimeWindow: false");
             return false;
         }
-        console.log("withinTimeWindow: true");
         return true;
     }
 
