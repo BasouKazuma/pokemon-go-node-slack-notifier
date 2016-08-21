@@ -11,7 +11,7 @@ function PgoNotifierDiscoveredLuredPokemon(pokemon, fort)
 
   this.pokemon = pokemon;
   this.fort_id = fort.FortId;
-  this.time_remaining = LURE_SPAWN_RATE;
+  this.duration = LURE_SPAWN_RATE;
   this.time_added = current_time;
 }
 

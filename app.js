@@ -33,47 +33,11 @@ try {
 var config_validator = new PgoNotifierConfigValidator(config);
 if (!config_validator.isConfigValid())
 {
-    console.log("Invalid config.json file!");
+    console.log("Invalid config.json file! Consult the Readme.md.");
     process.exit(1);
 }
 
 /***** FUNCTIONS *****/
-
-
-/**
- * Adds to a list of Pokemon that were already discovered
- *
- * @param {object[]} discovered_pokemon_list - List of recent Pokemon already encountered
- * @param {object} pokemon - Generic info about a Pokemon
- * @param {object} wildPokemon - Instance specific info about the encountered Pokemon
- *
- * @returns {object[]} of recent Pokemon already encountered
- */
-var addDiscoveredPokemon = function(discovered_pokemon_list, pokemon, wildPokemon)
-{
-    var discovered_pokemon = new PgoNotifierDiscoveredPokemon(pokemon, wildPokemon);
-    discovered_pokemon_list.push(discovered_pokemon);
-    console.log('[i] Added discovery entry for ' + pokemon.name);
-    return discovered_pokemon_list;
-}
-
-
-/**
- * Adds to a list of Lured Pokemon that were already discovered
- *
- * @param {object[]} discovered_lured_pokemon_list - List of recent Pokemon already encountered
- * @param {object} pokemon - Generic info about a Pokemon
- * @param {object} fort - Instance specific info about the nearby Fort/PokeStop
- *
- * @returns {object[]} of recent Pokemon already encountered
- */
-var addDiscoveredLuredPokemon = function(discovered_lured_pokemon_list, pokemon, fort)
-{
-    var discovered_lured_pokemon = new PgoNotifierDiscoveredLuredPokemon(pokemon, fort);
-    discovered_lured_pokemon_list.push(discovered_lured_pokemon);
-    console.log('[i] LURED: Added discovery entry for ' + pokemon.name);
-    return discovered_lured_pokemon_list;
-}
 
 
 /**
@@ -89,7 +53,7 @@ var removeExpiredPokemon = function(discovered_pokemon_list)
     current_time = current_time_object.getTime();
     for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
     {
-        var expiry_time = discovered_pokemon_list[m].time_added + discovered_pokemon_list[m].time_remaining;
+        var expiry_time = discovered_pokemon_list[m].time_added + discovered_pokemon_list[m].duration;
         if (expiry_time < current_time)
         {
             var pokemon = discovered_pokemon_list[m].pokemon;
@@ -114,7 +78,7 @@ var removeExpiredLuredPokemon = function(discovered_lured_pokemon_list)
     current_time = current_time_object.getTime();
     for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
     {
-        var expiry_time = discovered_lured_pokemon_list[m].time_added + discovered_lured_pokemon_list[m].time_remaining;
+        var expiry_time = discovered_lured_pokemon_list[m].time_added + discovered_lured_pokemon_list[m].duration;
         if (expiry_time < current_time)
         {
             var pokemon = discovered_lured_pokemon_list[m].pokemon;
@@ -173,8 +137,12 @@ var findPokemon = function(hb) {
                 if (notify_pokemon == true)
                 {
                     // console.log("Fort is " + distance_from_fort + " meters away");
-                    pgo_notifier_slack.addNearbyPokemon(pokemon, fort.Latitude, fort.Longitude);
-                    discovered_lured_pokemon_list = addDiscoveredLuredPokemon(discovered_lured_pokemon_list, pokemon, fort);
+                    var discovered_lured_pokemon = new PgoNotifierDiscoveredLuredPokemon(pokemon, fort);
+                    var lured_time_expires = discovered_lured_pokemon.time_added + discovered_lured_pokemon.duration;
+                    var lured_time_expires_object = new Date(lured_time_expires);
+                    pgo_notifier_slack.addNearbyPokemon(pokemon, lured_time_expires_object, fort.Latitude, fort.Longitude);
+                    discovered_lured_pokemon_list.push(discovered_lured_pokemon);
+                    console.log('[i] LURED: Added discovery entry for ' + pokemon.name);
                 }
             }
         }
@@ -214,8 +182,12 @@ var findPokemon = function(hb) {
                 if (notify_pokemon == true)
                 {
                     // fallback_text += pokemon.name + ' |';
-                    pgo_notifier_slack.addNearbyPokemon(pokemon, wildPokemon.Latitude, wildPokemon.Longitude);
-                    discovered_pokemon_list = addDiscoveredPokemon(discovered_pokemon_list, pokemon, wildPokemon);
+                    var discovered_pokemon = new PgoNotifierDiscoveredPokemon(pokemon, wildPokemon);
+                    var time_expires = discovered_pokemon.time_added + discovered_pokemon.duration;
+                    var time_expires_object = new Date(time_expires);
+                    pgo_notifier_slack.addNearbyPokemon(pokemon, time_expires_object, wildPokemon.Latitude, wildPokemon.Longitude);
+                    discovered_pokemon_list.push(discovered_pokemon);
+                    console.log('[i] Added discovery entry for ' + pokemon.name);
                 }
             }
         }
@@ -242,7 +214,7 @@ pokeio_instance.init(config.username, config.password, config.location, config.p
 setInterval(function() {
     pokeio_instance.Heartbeat(function(err,hb) {
         var current_time_object = new Date();
-        var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);;
+        var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);
         console.log("*** NEW RUN @ " + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
         if (!config_validator.withinTimeWindow(time))
         {

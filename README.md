@@ -9,9 +9,9 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
 ## Features
 - [x] Nearby Pokemon notifications, including lured
 - [x] Display location of the Pokemon on FastPokeMap / Google Maps
-- [x] Ignore list for unwanted Pokemon (static config for now)
+- [x] Ignore list for unwanted Pokemon (optional, static config for now)
 - [x] Specify a start and end time for receiving notifications
-- [ ] Display the Pokemon's expiration date
+- [x] Display the Pokemon's expiration date
 - [ ] Command to add/remove Pokemon to the ignore list
 - [ ] Command to change the location
 
@@ -67,6 +67,5 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
   * `location` - An object containing the location data
     * `type` - `name`
     * `name` - The address or name of the location you wish to scan from
-  * `false`
 
 Thanks to Armax, the creator of [Pokemon-GO-node-api](https://github.com/Armax/Pokemon-GO-node-api) which this project uses for interfacing with the Pokemon Go API.
