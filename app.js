@@ -99,95 +99,104 @@ var findPokemon = function(hb) {
     // var fallback_text = "Nearby Pokemon: ";
     var pgo_notifier_slack = new PgoNotifierSlack(config.slack_request_url);
 
-    for (var i = hb.cells.length - 1; i >= 0; i--)
+    if (typeof hb.cells === "undefined"
+        || hb.cells == null
+        || hb.cells.length <= 0)
     {
-
-        for (var n = hb.cells[i].Fort.length - 1; n >= 0; n--)
+        console.log("[i] The API returned an empty array. Your account may have been banned.");
+    }
+    else
+    {
+        for (var i = hb.cells.length - 1; i >= 0; i--)
         {
-            var fort = hb.cells[i].Fort[n];
-            var notify_pokemon = true;
-            var distance_from_fort = pgo_notifier_helper.distanceBetweenCoordinates(
-                    fort.Latitude,
-                    fort.Longitude,
-                    config.location.coords.latitude,
-                    config.location.coords.longitude
-                );
-            if (fort.LureInfo
-                && distance_from_fort < 50.0)
+    
+            for (var n = hb.cells[i].Fort.length - 1; n >= 0; n--)
             {
-                var pokemon = pokeio_instance.pokemonlist[parseInt(fort.LureInfo.ActivePokemonId)-1];
-                console.log('[i] LURED: There is a ' + pokemon.name + ' nearby');
-                for (var k = 0; k < pokemon_ignore_list.length; k++)
+                var fort = hb.cells[i].Fort[n];
+                var notify_pokemon = true;
+                var distance_from_fort = pgo_notifier_helper.distanceBetweenCoordinates(
+                        fort.Latitude,
+                        fort.Longitude,
+                        config.location.coords.latitude,
+                        config.location.coords.longitude
+                    );
+                if (fort.LureInfo
+                    && distance_from_fort < 50.0)
                 {
-                    if (pokemon_ignore_list[k] == pokemon.id)
+                    var pokemon = pokeio_instance.pokemonlist[parseInt(fort.LureInfo.ActivePokemonId)-1];
+                    console.log('[i] LURED: There is a ' + pokemon.name + ' nearby');
+                    for (var k = 0; k < pokemon_ignore_list.length; k++)
                     {
-                      notify_pokemon = false;
+                        if (pokemon_ignore_list[k] == pokemon.id)
+                        {
+                          notify_pokemon = false;
+                        }
                     }
-                }
-
-                for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
-                {
-                    if (discovered_lured_pokemon_list[m].fort_id == fort.FortId
-                        && discovered_lured_pokemon_list[m].pokemon.id == pokemon.id)
+    
+                    for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
                     {
-                        notify_pokemon = false;
+                        if (discovered_lured_pokemon_list[m].fort_id == fort.FortId
+                            && discovered_lured_pokemon_list[m].pokemon.id == pokemon.id)
+                        {
+                            notify_pokemon = false;
+                        }
                     }
-                }
-
-                if (notify_pokemon == true)
-                {
-                    // console.log("Fort is " + distance_from_fort + " meters away");
-                    var discovered_lured_pokemon = new PgoNotifierDiscoveredLuredPokemon(pokemon, fort);
-                    var lured_time_expires = discovered_lured_pokemon.time_added + discovered_lured_pokemon.duration;
-                    var lured_time_expires_object = new Date(lured_time_expires);
-                    pgo_notifier_slack.addNearbyPokemon(pokemon, lured_time_expires_object, fort.Latitude, fort.Longitude);
-                    discovered_lured_pokemon_list.push(discovered_lured_pokemon);
-                    console.log('[i] LURED: Added discovery entry for ' + pokemon.name);
+    
+                    if (notify_pokemon == true)
+                    {
+                        // console.log("Fort is " + distance_from_fort + " meters away");
+                        var discovered_lured_pokemon = new PgoNotifierDiscoveredLuredPokemon(pokemon, fort);
+                        var lured_time_expires = discovered_lured_pokemon.time_added + discovered_lured_pokemon.duration;
+                        var lured_time_expires_object = new Date(lured_time_expires);
+                        pgo_notifier_slack.addNearbyPokemon(pokemon, lured_time_expires_object, fort.Latitude, fort.Longitude);
+                        discovered_lured_pokemon_list.push(discovered_lured_pokemon);
+                        console.log('[i] LURED: Added discovery entry for ' + pokemon.name);
+                    }
                 }
             }
-        }
-
-        if (hb.cells[i].WildPokemon[0])
-        // if (hb.cells[i].MapPokemon[0])
-        {
-            for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
-            // for (var j = hb.cells[i].MapPokemon.length - 1; j >= 0; j--)
+    
+            if (hb.cells[i].WildPokemon[0])
+            // if (hb.cells[i].MapPokemon[0])
             {
-                var wildPokemon = hb.cells[i].WildPokemon[j];
-                // var wildPokemon = hb.cells[i].MapPokemon[j];
-                var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
-                // var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.PokedexTypeId)-1];
-                console.log('[i] There is a ' + pokemon.name + ' nearby');
-                
-                var notify_pokemon = true;
-                
-                for (var k = 0; k < pokemon_ignore_list.length; k++)
+                for (var j = hb.cells[i].WildPokemon.length - 1; j >= 0; j--)
+                // for (var j = hb.cells[i].MapPokemon.length - 1; j >= 0; j--)
                 {
-                    if (pokemon_ignore_list[k] == pokemon.id)
+                    var wildPokemon = hb.cells[i].WildPokemon[j];
+                    // var wildPokemon = hb.cells[i].MapPokemon[j];
+                    var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.pokemon.PokemonId)-1];
+                    // var pokemon = pokeio_instance.pokemonlist[parseInt(wildPokemon.PokedexTypeId)-1];
+                    console.log('[i] There is a ' + pokemon.name + ' nearby');
+                    
+                    var notify_pokemon = true;
+                    
+                    for (var k = 0; k < pokemon_ignore_list.length; k++)
                     {
-                      notify_pokemon = false;
+                        if (pokemon_ignore_list[k] == pokemon.id)
+                        {
+                          notify_pokemon = false;
+                        }
                     }
-                }
-                
-                for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
-                {
-                    if (discovered_pokemon_list[m].encounter_id.low == wildPokemon.EncounterId.low &&
-                        discovered_pokemon_list[m].encounter_id.high == wildPokemon.EncounterId.high &&
-                        discovered_pokemon_list[m].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
+                    
+                    for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
                     {
-                        notify_pokemon = false;
+                        if (discovered_pokemon_list[m].encounter_id.low == wildPokemon.EncounterId.low &&
+                            discovered_pokemon_list[m].encounter_id.high == wildPokemon.EncounterId.high &&
+                            discovered_pokemon_list[m].encounter_id.unsigned == wildPokemon.EncounterId.unsigned)
+                        {
+                            notify_pokemon = false;
+                        }
                     }
-                }
-                
-                if (notify_pokemon == true)
-                {
-                    // fallback_text += pokemon.name + ' |';
-                    var discovered_pokemon = new PgoNotifierDiscoveredPokemon(pokemon, wildPokemon);
-                    var time_expires = discovered_pokemon.time_added + discovered_pokemon.duration;
-                    var time_expires_object = new Date(time_expires);
-                    pgo_notifier_slack.addNearbyPokemon(pokemon, time_expires_object, wildPokemon.Latitude, wildPokemon.Longitude);
-                    discovered_pokemon_list.push(discovered_pokemon);
-                    console.log('[i] Added discovery entry for ' + pokemon.name);
+                    
+                    if (notify_pokemon == true)
+                    {
+                        // fallback_text += pokemon.name + ' |';
+                        var discovered_pokemon = new PgoNotifierDiscoveredPokemon(pokemon, wildPokemon);
+                        var time_expires = discovered_pokemon.time_added + discovered_pokemon.duration;
+                        var time_expires_object = new Date(time_expires);
+                        pgo_notifier_slack.addNearbyPokemon(pokemon, time_expires_object, wildPokemon.Latitude, wildPokemon.Longitude);
+                        discovered_pokemon_list.push(discovered_pokemon);
+                        console.log('[i] Added discovery entry for ' + pokemon.name);
+                    }
                 }
             }
         }
