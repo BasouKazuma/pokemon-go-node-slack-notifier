@@ -11,7 +11,7 @@ function PgoNotifierSlackAttachment(pokemon, time_expires, latitude, longitude)
   
     this.fallback = pokemon.name + " is nearby!";
     this.title = pokemon.name;
-    this.text = pokemon.name + " is nearby until  " + timestamp + ". Go catch it already!\n " +
+    this.text = pokemon.name + " is nearby until " + timestamp + ". Go catch it already!\n " +
                   //"<" + POKEVISION_URL + "#/@" + latitude +"," + longitude + "|Pokevision>" + 
                   "<" + FASTPOKEMAP_URL + "#" + latitude +"," + longitude + "|FastPokeMap>" + 
                   " | " +
