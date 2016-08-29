@@ -1,8 +1,11 @@
 {
   "name": "pokemon-go-node-slack-notifier",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "dependencies": {
     "request": "*",
+    "body-parser": "^1.15.2",
+    "fs": "0.0.1-security",
+    "https": "^1.0.0",
     "express": "^4.12.3",
     "pokemon-go-node-api": "git+https://github.com/Armax/Pokemon-GO-node-api.git"
   },

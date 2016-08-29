@@ -3,7 +3,8 @@
     "password": "changeme",
     "provider": "ptc",
     "slack_request_url": "https://hooks.slack.com/services/CHANGEME",
-    "port": 80,
+    "slack_token": "changeme",
+    "port": 443,
     "start_time": "0:00",
     "end_time": "24:00",
     "location": {

@@ -12,6 +12,24 @@ var PgoNotifierDiscoveredLuredPokemon = require('./PgoNotifierDiscoveredLuredPok
 var request = require('request');
 var express = require("express");
 var app = express();
+var fs = require('fs');
+var https = require('https');
+var bodyParser = require('body-parser');
+
+// Setup the server if the port is specified
+if (config.port)
+{
+    var server = https.createServer(
+        {
+            key: fs.readFileSync('./tls/key.pem'),
+            cert: fs.readFileSync('./tls/cert.pem')
+        },
+        app
+    );
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
+    server.listen(config.port);
+}
 
 const PGO_DISCOVERED_TYPE_WILD = 1;
 const PGO_DISCOVERED_TYPE_LURE = 2;
@@ -38,6 +56,31 @@ if (!config_validator.isConfigValid())
 }
 
 /***** FUNCTIONS *****/
+
+
+/**
+ *
+ *
+ */
+var sendSlackMessage = function(response_type, text, response_url)
+{
+    request.post(
+        {
+            url: response_url,
+            json: true,
+            headers: {
+                "content-type": "application/json",
+            },
+            body: {
+                response_type: response_type,
+                text: text
+            }
+        }, 
+        function(error, response, body) {
+            console.log(body);
+        }
+    );
+}
 
 
 /**
@@ -249,11 +292,58 @@ setInterval(function() {
 }, HEARTBEAT_TIME_INTERVAL);
 
 
-app.get("/",function(req,res) {
-        res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
+app.get("/", function(req, res) {
+    res.send("<h1>Soylent Candy is made out of Pokemon!</h1>");
 });
 
-if (config.port)
-{
-    app.listen(config.port);
-}
+
+app.post("/slack", function(req, res) {
+    var token = req.body.token;
+    var team_id = req.body.team_id;
+    var team_domain = req.body.team_domain;
+    var channel_id = req.body.channel_id;
+    var channel_name = req.body.channel_name;
+    var user_id = req.body.user_id;
+    var user_name = req.body.user_name;
+    var command = req.body.command;
+    var text = req.body.text;
+    var response_url = req.body.response_url;
+
+    if (config.slack_token == token)
+    {
+        var text_array = text.split(" ");
+        switch(text_array[0])
+        {
+            case "help":
+                var response_type = "ephemeral";
+                var body_text = "*Available Commands*\n";
+                body_text +=  " - ignore [pokemon number] (Add a Pokemon to the ignore list)\n";
+                body_text +=  " - unignore [pokemon number] (Remove a Pokemon to the ignore list)\n";
+                body_text +=  " - location [longitude] [latitude] (Changes the location to scan in decimal degrees)\n";
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            case "ignore":
+                var response_type = "in_channel";
+                var body_text = "Not yet implemented.";
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            case "unignore":
+                var response_type = "in_channel";
+                var body_text = "Not yet implemented.";
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            case "location":
+                var response_type = "in_channel";
+                var body_text = "Not yet implemented.";
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            default:
+                break;
+        }
+    }
+    else
+    {
+        console.log("Invalid slack token.");
+    }
+    res.send(null);
+});
