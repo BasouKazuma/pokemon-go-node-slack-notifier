@@ -42,7 +42,7 @@ var discovered_lured_pokemon_list = [];
 
 // Optional list of Pokemon to suppress notifications for
 try {
-    var pokemon_ignore_list = require('./ignore_list.js');
+    var pokemon_ignore_list = require('./ignore_list.json');
 } catch (ex) {
     var pokemon_ignore_list = [];
 }
@@ -56,6 +56,73 @@ if (!config_validator.isConfigValid())
 }
 
 /***** FUNCTIONS *****/
+
+
+/**
+ * Adds a Pokemon to the ignore list
+ *
+ * @param {object} pokemon - Pokemon to be added
+ * @param {number[]} ignore_list - List of Pokemon being ignored
+ * @returns {number[]} of Pokemon by id
+ */
+var ignorePokemon = function(pokemon, ignore_list)
+{
+    ignore_list.push(pokemon.id);
+    updateIgnoreList(ignore_list);
+    return ignore_list;
+}
+
+
+ /**
+ * Removes a Pokemon from the ignore list
+ *
+ * @param {object} pokemon - Pokemon to be removed
+ * @param {number[]} ignore_list - List of Pokemon being ignored
+ * @returns {number[]} of Pokemon by id
+ */
+var unignorePokemon = function(pokemon, ignore_list)
+{
+    for (var i = ignore_list.length - 1; i >= 0; i--)
+    {
+        if (ignore_list[i] == pokemon.id)
+        {
+            ignore_list.splice(i, 1);
+            updateIgnoreList(ignore_list);
+        }
+    }
+    return ignore_list;
+}
+
+
+/**
+ * 
+ * @param {object} pokemon - Pokemon to be removed
+ * @param {number[]} ignore_list - List of Pokemon being ignored
+ * @retuns {boolean} whether the specified Pokemon is in the ignore list
+ */
+var isInIgnoreList = function(pokemon, ignore_list)
+{
+    for (var i = 0; i <= ignore_list.length - 1; i++)
+    {
+        if (ignore_list[i] == pokemon.id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/**
+ * Updates the ignore list file to match the changes to the list
+ *
+ * @param {number[]} ignore_list - List of Pokemon being ignored
+ */
+var updateIgnoreList = function(ignore_list)
+{
+    ignore_list = JSON.stringify(ignore_list, null, 4);
+    fs.writeFileSync('./ignore_list.json', ignore_list);
+}
 
 
 /**
@@ -324,12 +391,49 @@ app.post("/slack", function(req, res) {
                 break;
             case "ignore":
                 var response_type = "in_channel";
-                var body_text = "Not yet implemented.";
+                var pokemon_id = text_array[1];
+                var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
+                if (pokemon && !isInIgnoreList(pokemon, pokemon_ignore_list))
+                {
+                    pokemon_ignore_list = ignorePokemon(pokemon, pokemon_ignore_list);
+                    var body_text = pokemon.name + " was added to the ignore list.";
+                }
+                else
+                {
+                    var body_text = pokemon.name + " is already being ignored.";
+                }
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
             case "unignore":
                 var response_type = "in_channel";
-                var body_text = "Not yet implemented.";
+                var pokemon_id = text_array[1];
+                var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
+                if (pokemon && isInIgnoreList(pokemon, pokemon_ignore_list))
+                {
+                    pokemon_ignore_list = unignorePokemon(pokemon, pokemon_ignore_list);
+                    var body_text = pokemon.name + " was removed from the ignore list.";
+                }
+                else
+                {
+                    var body_text = pokemon.name + " wasn't in the ignore list.";
+                }
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            case "ignorelist":
+                var response_type = "in_channel";
+                var body_text = "*Ignored Pokemon*\n";
+                if (pokemon_ignore_list.length > 0)
+                {
+                    for (var i = 0; i <= pokemon_ignore_list.length - 1; i ++)
+                    {
+                        var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_ignore_list[i])-1];
+                        body_text += " - " + pokemon.name + "\n";
+                    }
+                }
+                else
+                {
+                    body_text += "No Pokemon are currently being ignored.";
+                }
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
             case "location":

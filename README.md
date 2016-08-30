@@ -35,8 +35,8 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
   * Create a config.json based on a copy of a sample config
     * [config.sample1.json](./config.sample1.json) shows how to use a Google account and a GPS coordinate
     * [config.sample2.json](./config.sample2.json) shows how to use a Pokemon Trainer Club account, a mailing address, and time windowing
-  * (Optional) Create an ignore_list.js based on a copy of the [ignore_list.sample.js](./ignore_list.sample.js) if you want to ignore certain Pokemon
-  * (Optional) Set up HTTPS webserver endpoint for the Slack Commands to reach
+  * (Optional) Create an ignore_list.json containing an array of pokemon to ignore by number, based on a copy of the [ignore_list.sample.json](./ignore_list.sample.json) if you want to ignore certain Pokemon
+  * (Optional) Set up the HTTPS webserver endpoint to process the Slack Commands
     * Copy the TLS keys for your domain to the `tls` folder named as `key.pem` and `cert.pem` respectively.
     * Set up a new custom Slack Command for your Slack team and set the URL to "[your_hostname]/slack"
     * Copy the Slack Command's token and add it to the `config.json`
