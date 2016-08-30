@@ -12,8 +12,9 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
 - [x] Ignore list for unwanted Pokemon (optional, static config for now)
 - [x] Specify a start and end time for receiving notifications
 - [x] Display the Pokemon's expiration date
-- [ ] Command to add/remove Pokemon to the ignore list
+- [x] Commands to add/remove Pokemon to the ignore list and display the currently ignored Pokemon
 - [ ] Command to change the location
+- [ ] Command to start and stop reporting
 
 ## Known Issues
   * May report Pokemon that are a little out of range
