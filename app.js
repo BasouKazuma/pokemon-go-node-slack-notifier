@@ -386,8 +386,8 @@ app.post("/slack", function(req, res) {
                 var body_text = "*Available Commands*\n";
                 body_text +=  " - ignore [pokemon number] (Add a Pokemon to the ignore list)\n";
                 body_text +=  " - unignore [pokemon number] (Remove a Pokemon to the ignore list)\n";
-                body_text +=  " - ignorelist [pokemon number] (List the Pokemon currently being ignored)\n";
-                body_text +=  " - location [longitude] [latitude] (Changes the location to scan in decimal degrees)\n";
+                body_text +=  " - ignorelist (List the Pokemon currently being ignored)\n";
+                body_text +=  " - location [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
             case "ignore":
