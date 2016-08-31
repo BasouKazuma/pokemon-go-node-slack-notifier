@@ -1,6 +1,6 @@
 {
   "name": "pokemon-go-node-slack-notifier",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "dependencies": {
     "request": "*",
     "body-parser": "^1.15.2",

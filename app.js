@@ -47,6 +47,14 @@ try {
     var pokemon_ignore_list = [];
 }
 
+
+// Option list of saved locations
+try {
+    var location_list = require('./location_list.json');
+} catch (ex) {
+    var location_list = [];
+}
+
 // Exit the app if the config is invalid
 var config_validator = new PgoNotifierConfigValidator(config);
 if (!config_validator.isConfigValid())
@@ -122,6 +130,71 @@ var updateIgnoreList = function(ignore_list)
 {
     ignore_list = JSON.stringify(ignore_list, null, 4);
     fs.writeFileSync('./ignore_list.json', ignore_list);
+}
+
+
+/**
+ * Updates the config file to match the new config
+ * 
+ * @param {object} new_config - Contains the new config
+ */
+var updateConfigFile = function(new_config)
+{
+    config_data = JSON.stringify(new_config, null, 4);
+    fs.writeFileSync('./config.json', config_data);
+}
+
+
+/**
+ *
+ * @param {} location_label - The label for the location to return
+ * @returns {object|null} The location that matches the label
+ */
+var getLocation = function(location_label)
+{
+    for (var i = 0; i <= location_list.length - 1; i++)
+    {
+        if (location_list[i].label == location_label)
+        {
+            return location_list[i].location;
+        }
+    }
+    return null;
+}
+
+
+/**
+ *
+ *
+ */
+var updateLocationList = function(location_label, latitude, longitude)
+{
+    var updated = false;
+    for (var i = 0; i <= location_list.length - 1; i++)
+    {
+        if (location_list[i].label == location_label)
+        {
+            location_list[i].location.coords.latitude = latitude;
+            location_list[i].location.coords.longitude = longitude;
+            updated = true;
+        }
+    }
+    if (!updated)
+    {
+        location_list.push({
+            label: location_label,
+            location: {
+                type: "coords",
+                coords: {
+                    latitude: latitude,
+                    longitude: longitude,
+                    altitude: 9.8
+                }
+            }
+        });
+    }
+    location_list_data = JSON.stringify(location_list, null, 4);
+    fs.writeFileSync('./location_list.json', location_list_data);
 }
 
 
@@ -321,6 +394,14 @@ var findPokemon = function(hb) {
 
 /***** APP LOGIC *****/
 
+var current_location = {
+    type: "coords",
+    coords: {
+        latitude: config.location.coords.latitude,
+        longitude: config.location.coords.longitude,
+        altitude: config.location.coords.altitude
+    }
+};
 
 var pokeio_instance = new PokemonApi.Pokeio();
 pokeio_instance.init(config.username, config.password, config.location, config.provider, function(err) {
@@ -335,6 +416,20 @@ setInterval(function() {
         var current_time_object = new Date();
         var time = current_time_object.getHours() + ":" + ("0" + current_time_object.getMinutes()).slice(-2);
         console.log("*** NEW RUN @ " + time + ":" + ("0" + current_time_object.getSeconds()).slice(-2) + " ***");
+        if (current_location.coords.latitude != config.location.coords.latitude
+            || current_location.coords.longitude != config.location.coords.longitude
+            || current_location.coords.altitude != config.location.coords.altitude)
+        {
+            err = "Location changed!";
+            current_location = {
+                type: "coords",
+                coords: {
+                    latitude: config.location.coords.latitude,
+                    longitude: config.location.coords.longitude,
+                    altitude: config.location.coords.altitude
+                }
+            };
+        }
         if (!config_validator.withinTimeWindow(time))
         {
             console.log("[i] Current Time is " + time + ". Reporting will be online between " + config.start_time + " and " + config.end_time);
@@ -387,7 +482,8 @@ app.post("/slack", function(req, res) {
                 body_text +=  " - ignore [pokemon number] (Add a Pokemon to the ignore list)\n";
                 body_text +=  " - unignore [pokemon number] (Remove a Pokemon to the ignore list)\n";
                 body_text +=  " - ignorelist (List the Pokemon currently being ignored)\n";
-                body_text +=  " - location [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
+                body_text +=  " - location [optional_name] [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
+                body_text +=  " - locationlist (Lists the saved locations)\n";
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
             case "ignore":
@@ -439,7 +535,67 @@ app.post("/slack", function(req, res) {
                 break;
             case "location":
                 var response_type = "in_channel";
-                var body_text = "The location command is not yet implemented.";
+                var check_param1 = parseFloat(text_array[1]);
+                if (isNaN(check_param1))
+                {
+                    var location_label = text_array[1];
+                    var latitude = parseFloat(text_array[2]);
+                    var longitude = parseFloat(text_array[3]);
+                }
+                else
+                {
+                    var latitude = parseFloat(text_array[1]);
+                    var longitude = parseFloat(text_array[2]);
+                }
+                if (!isNaN(latitude)
+                    && !isNaN(longitude))
+                {
+                    config.location.coords.latitude = latitude;
+                    config.location.coords.longitude = longitude;
+                    updateConfigFile(config);
+                    if (location_label)
+                    {
+                        updateLocationList(location_label, latitude, longitude);
+                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude + " and saved as " + location_label + ".";
+                    }
+                    else
+                    {
+                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude;
+                    }
+                }
+                else if (location_label)
+                {
+                    var location = getLocation(location_label);
+                    if (location)
+                    {
+                        var latitude = location.coords.latitude;
+                        var longitude = location.coords.longitude;
+                        config.location.coords.latitude = latitude;
+                        config.location.coords.longitude = longitude;
+                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude;
+                    }
+                    else
+                    {
+                        var body_text = "No location found for that label.";
+                    }
+                }
+                else
+                {
+                    var body_text = "Unable to update the location.";
+                }
+                sendSlackMessage(response_type, body_text, response_url);
+                break;
+            case "locationlist":
+                var response_type = "in_channel";
+                var body_text = "*Location List*\n";
+                for (var i = 0; i <= location_list.length - 1; i++)
+                {
+                    var location_label = location_list[i].label;
+                    var latitude = location_list[i].location.coords.latitude;
+                    var longitude = location_list[i].location.coords.longitude;
+                    var altitude = location_list[i].location.coords.altitude;
+                    body_text += " - Label: " + location_label + " Latitude: " + latitude + " Longitude: " + longitude + " Altitude: " + altitude +"\n";
+                }
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
             default:
