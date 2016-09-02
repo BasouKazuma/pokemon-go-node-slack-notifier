@@ -9,7 +9,7 @@ function PgoNotifierLocationList(location_list_data)
 
     /**
      *
-     * @param {} location_label - The label for the location to return
+     * @param {string} location_label - The label for the location to return
      * @returns {object|null} The location that matches the label
      */
     this.getLocation = function(location_label)
@@ -27,7 +27,8 @@ function PgoNotifierLocationList(location_list_data)
 
     /**
      *
-     * @param {array} location_label - 
+     * @param {array} location_label - The label for the location to check
+     * @returns {boolean} whether or not the label is already being used
      */
     this.labelInUse = function(location_label)
     {
@@ -44,9 +45,9 @@ function PgoNotifierLocationList(location_list_data)
 
     /**
      *
-     * @param {array} location_label - 
-     * @param {number} latitude - 
-     * @param {number} longitude - 
+     * @param {string} location_label - The label for the location to add
+     * @param {number} latitude - The latitude in decimal degrees
+     * @param {number} longitude - The longitude in decimal degrees
      */
     this.add = function(location_label, latitude, longitude)
     {
@@ -81,7 +82,7 @@ function PgoNotifierLocationList(location_list_data)
 
     /**
      *
-     * @param {array} location_label - 
+     * @param {array} location_label - The label for the location to remove
      */
     this.remove = function(location_label)
     {
@@ -96,6 +97,9 @@ function PgoNotifierLocationList(location_list_data)
     }
 
 
+    /**
+     * Updates the location list file with the latest data
+     */
     this.updateFile = function()
     {
         fs.writeFileSync(
