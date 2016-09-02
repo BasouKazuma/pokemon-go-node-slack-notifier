@@ -10,6 +10,7 @@ var PgoNotifierDiscoveredPokemon = require('./PgoNotifierDiscoveredPokemon.js');
 var PgoNotifierDiscoveredLuredPokemon = require('./PgoNotifierDiscoveredLuredPokemon.js');
 var PgoNotifierLocation = require('./PgoNotifierLocation.js');
 var PgoNotifierLocationList = require('./PgoNotifierLocationList.js');
+var PgoNotifierIgnoreList = require('./PgoNotifierIgnoreList.js');
 
 var request = require('request');
 var express = require("express");
@@ -44,10 +45,11 @@ var discovered_lured_pokemon_list = [];
 
 // Optional list of Pokemon to suppress notifications for
 try {
-    var pokemon_ignore_list = require('./ignore_list.json');
+    var ignore_list_data = require('./ignore_list.json');
 } catch (ex) {
-    var pokemon_ignore_list = [];
+    var ignore_list_data = [];
 }
+var ignore_list = new PgoNotifierIgnoreList(ignore_list_data);
 
 // Optional list of saved locations
 try {
@@ -68,73 +70,6 @@ if (!config_validator.isConfigValid())
 }
 
 /***** FUNCTIONS *****/
-
-
-/**
- * Adds a Pokemon to the ignore list
- *
- * @param {object} pokemon - Pokemon to be added
- * @param {number[]} ignore_list - List of Pokemon being ignored
- * @returns {number[]} of Pokemon by id
- */
-var ignorePokemon = function(pokemon, ignore_list)
-{
-    ignore_list.push(pokemon.id);
-    updateIgnoreList(ignore_list);
-    return ignore_list;
-}
-
-
- /**
- * Removes a Pokemon from the ignore list
- *
- * @param {object} pokemon - Pokemon to be removed
- * @param {number[]} ignore_list - List of Pokemon being ignored
- * @returns {number[]} of Pokemon by id
- */
-var unignorePokemon = function(pokemon, ignore_list)
-{
-    for (var i = ignore_list.length - 1; i >= 0; i--)
-    {
-        if (ignore_list[i] == pokemon.id)
-        {
-            ignore_list.splice(i, 1);
-            updateIgnoreList(ignore_list);
-        }
-    }
-    return ignore_list;
-}
-
-
-/**
- * 
- * @param {object} pokemon - Pokemon to be removed
- * @param {number[]} ignore_list - List of Pokemon being ignored
- * @retuns {boolean} whether the specified Pokemon is in the ignore list
- */
-var isInIgnoreList = function(pokemon, ignore_list)
-{
-    for (var i = 0; i <= ignore_list.length - 1; i++)
-    {
-        if (ignore_list[i] == pokemon.id)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-/**
- * Updates the ignore list file to match the changes to the list
- *
- * @param {number[]} ignore_list - List of Pokemon being ignored
- */
-var updateIgnoreList = function(ignore_list)
-{
-    ignore_list = JSON.stringify(ignore_list, null, 4);
-    fs.writeFileSync('./ignore_list.json', ignore_list);
-}
 
 
 /**
@@ -259,12 +194,9 @@ var findPokemon = function(hb) {
                 {
                     var pokemon = pokeio_instance.pokemonlist[parseInt(fort.LureInfo.ActivePokemonId)-1];
                     console.log('[i] LURED: There is a ' + pokemon.name + ' nearby');
-                    for (var k = 0; k < pokemon_ignore_list.length; k++)
+                    if (ignore_list.isPokemonIgnored(pokemon.id))
                     {
-                        if (pokemon_ignore_list[k] == pokemon.id)
-                        {
-                          notify_pokemon = false;
-                        }
+                        notify_pokemon = false;
                     }
     
                     for (var m = discovered_lured_pokemon_list.length - 1; m >= 0; m--)
@@ -303,12 +235,9 @@ var findPokemon = function(hb) {
                     
                     var notify_pokemon = true;
                     
-                    for (var k = 0; k < pokemon_ignore_list.length; k++)
+                    if (ignore_list.isPokemonIgnored(pokemon.id))
                     {
-                        if (pokemon_ignore_list[k] == pokemon.id)
-                        {
-                          notify_pokemon = false;
-                        }
+                        notify_pokemon = false;
                     }
                     
                     for (var m = discovered_pokemon_list.length - 1; m >= 0; m--)
@@ -445,9 +374,9 @@ app.post("/slack", function(req, res) {
                 var response_type = "in_channel";
                 var pokemon_id = text_array[1];
                 var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
-                if (pokemon && !isInIgnoreList(pokemon, pokemon_ignore_list))
+                if (pokemon && !ignore_list.isPokemonIgnored(pokemon.id))
                 {
-                    pokemon_ignore_list = ignorePokemon(pokemon, pokemon_ignore_list);
+                    ignore_list.add(pokemon.id);
                     var body_text = pokemon.name + " was added to the ignore list.";
                 }
                 else
@@ -460,9 +389,9 @@ app.post("/slack", function(req, res) {
                 var response_type = "in_channel";
                 var pokemon_id = text_array[1];
                 var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
-                if (pokemon && isInIgnoreList(pokemon, pokemon_ignore_list))
+                if (pokemon && ignore_list.isPokemonIgnored(pokemon.id))
                 {
-                    pokemon_ignore_list = unignorePokemon(pokemon, pokemon_ignore_list);
+                    ignore_list.remove(pokemon.id);
                     var body_text = pokemon.name + " was removed from the ignore list.";
                 }
                 else
@@ -474,11 +403,11 @@ app.post("/slack", function(req, res) {
             case "ignorelist":
                 var response_type = "in_channel";
                 var body_text = "*Ignored Pokemon*\n";
-                if (pokemon_ignore_list.length > 0)
+                if (ignore_list.data.length > 0)
                 {
-                    for (var i = 0; i <= pokemon_ignore_list.length - 1; i ++)
+                    for (var i = 0; i <= ignore_list.data.length - 1; i ++)
                     {
-                        var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_ignore_list[i])-1];
+                        var pokemon = pokeio_instance.pokemonlist[parseInt(ignore_list.data[i])-1];
                         body_text += " - " + pokemon.name + "\n";
                     }
                 }
@@ -510,7 +439,7 @@ app.post("/slack", function(req, res) {
                     updateConfigFile(config);
                     if (location_label)
                     {
-                        location_list.update(location_label, latitude, longitude);
+                        location_list.add(location_label, latitude, longitude);
                         var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude + " and saved as *" + location_label + "*.";
                     }
                     else
