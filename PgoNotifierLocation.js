@@ -8,9 +8,12 @@ function PgoNotifierLocation(type, data)
     switch(type)
     {
         case LOCATION_TYPE_COORDINATES:
+            this.type = type;
+            this.coords = data;
+            break;
         case LOCATION_TYPE_ADDRESS:
             this.type = type;
-            this.{type} = data;
+            this.name = data;
             break;
         default:
             this.type = null;
@@ -44,9 +47,9 @@ function PgoNotifierLocation(type, data)
         switch(this.type)
         {
             case LOCATION_TYPE_COORDINATES:
-                if (!isNaN(parseFloat(this.{LOCATION_TYPE_COORDINATES}.latitude))
-                  && !isNaN(parseFloat(this.{LOCATION_TYPE_COORDINATES}.longitude))
-                  && !isNaN(parseFloat(this.{LOCATION_TYPE_COORDINATES}.altitude)))
+                if (!isNaN(parseFloat(this.coords.latitude))
+                  && !isNaN(parseFloat(this.coords.longitude))
+                  && !isNaN(parseFloat(this.coords.altitude)))
                 {
                     return true
                 }

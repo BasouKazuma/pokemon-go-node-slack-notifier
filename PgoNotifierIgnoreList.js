@@ -1,4 +1,5 @@
 
+var fs = require('fs');
 
 function PgoNotifierIgnoreList(ignore_list_data)
 {
@@ -14,7 +15,7 @@ function PgoNotifierIgnoreList(ignore_list_data)
     {
         for (var i = 0; i <= this.data.length - 1; i++)
         {
-            if (this.data[k] == pokemon_id)
+            if (this.data[i] == pokemon_id)
             {
               return true;
             }

@@ -53,7 +53,7 @@ var ignore_list = new PgoNotifierIgnoreList(ignore_list_data);
 
 // Optional list of saved locations
 try {
-    var location_list_data = require(LOCATION_LIST_FILE);
+    var location_list_data = require('./location_list.json');
 } catch (ex) {
     var location_list_data = [];
 }
@@ -366,7 +366,8 @@ app.post("/slack", function(req, res) {
                 body_text +=  " - ignore [pokemon number] (Add a Pokemon to the ignore list)\n";
                 body_text +=  " - unignore [pokemon number] (Remove a Pokemon to the ignore list)\n";
                 body_text +=  " - ignorelist (List the Pokemon currently being ignored)\n";
-                body_text +=  " - location [optional_name] [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
+                body_text +=  " - location [optional_label] [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
+                body_text +=  " - removelocation [label] (Removes the specified location by label )\n";
                 body_text +=  " - locationlist (Lists the saved locations)\n";
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
@@ -471,6 +472,7 @@ app.post("/slack", function(req, res) {
                 break;
             case "removelocation":
                 var response_type = "in_channel";
+                var location_label = text_array[1];
                 if (location_list.labelInUse(location_label))
                 {
                     location_list.remove(location_label);
@@ -480,6 +482,7 @@ app.post("/slack", function(req, res) {
                 {
                     var body_text = "Location label *" + location_label + "* was not found.";
                 }
+                sendSlackMessage(response_type, body_text, response_url);
                 break;
             case "locationlist":
                 var response_type = "in_channel";

@@ -1,5 +1,8 @@
-const LOCATION_LIST_FILE = './location_list.json';
 
+var fs = require('fs');
+var PgoNotifierLocation = require('./PgoNotifierLocation.js');
+
+const LOCATION_LIST_FILE = './location_list.json';
 
 function PgoNotifierLocationList(location_list_data)
 {
@@ -64,7 +67,7 @@ function PgoNotifierLocationList(location_list_data)
         }
         else
         {
-            var type = PgoNotifierLocation.LOCATION_TYPE_COORDINATES;
+            var type = 'coords';
             var coordinates = {
                 latitude: latitude,
                 longitude: longitude,
