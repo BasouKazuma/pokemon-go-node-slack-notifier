@@ -8,6 +8,8 @@ var pgo_notifier_helper = new PgoNotifierHelper();
 var PgoNotifierSlack = require('./PgoNotifierSlack.js');
 var PgoNotifierDiscoveredPokemon = require('./PgoNotifierDiscoveredPokemon.js');
 var PgoNotifierDiscoveredLuredPokemon = require('./PgoNotifierDiscoveredLuredPokemon.js');
+var PgoNotifierLocation = require('./PgoNotifierLocation.js');
+var PgoNotifierLocationList = require('./PgoNotifierLocationList.js');
 
 var request = require('request');
 var express = require("express");
@@ -47,13 +49,15 @@ try {
     var pokemon_ignore_list = [];
 }
 
-
-// Option list of saved locations
+// Optional list of saved locations
 try {
-    var location_list = require('./location_list.json');
+    var location_list_data = require(LOCATION_LIST_FILE);
 } catch (ex) {
-    var location_list = [];
+    var location_list_data = [];
 }
+var location_list = new PgoNotifierLocationList(location_list_data);
+
+
 
 // Exit the app if the config is invalid
 var config_validator = new PgoNotifierConfigValidator(config);
@@ -142,59 +146,6 @@ var updateConfigFile = function(new_config)
 {
     config_data = JSON.stringify(new_config, null, 4);
     fs.writeFileSync('./config.json', config_data);
-}
-
-
-/**
- *
- * @param {} location_label - The label for the location to return
- * @returns {object|null} The location that matches the label
- */
-var getLocation = function(location_label)
-{
-    for (var i = 0; i <= location_list.length - 1; i++)
-    {
-        if (location_list[i].label == location_label)
-        {
-            return location_list[i].location;
-        }
-    }
-    return null;
-}
-
-
-/**
- *
- *
- */
-var updateLocationList = function(location_label, latitude, longitude)
-{
-    var updated = false;
-    for (var i = 0; i <= location_list.length - 1; i++)
-    {
-        if (location_list[i].label == location_label)
-        {
-            location_list[i].location.coords.latitude = latitude;
-            location_list[i].location.coords.longitude = longitude;
-            updated = true;
-        }
-    }
-    if (!updated)
-    {
-        location_list.push({
-            label: location_label,
-            location: {
-                type: "coords",
-                coords: {
-                    latitude: latitude,
-                    longitude: longitude,
-                    altitude: 9.8
-                }
-            }
-        });
-    }
-    location_list_data = JSON.stringify(location_list, null, 4);
-    fs.writeFileSync('./location_list.json', location_list_data);
 }
 
 
@@ -394,6 +345,7 @@ var findPokemon = function(hb) {
 
 /***** APP LOGIC *****/
 
+
 var current_location = {
     type: "coords",
     coords: {
@@ -452,6 +404,9 @@ setInterval(function() {
         }
     });
 }, HEARTBEAT_TIME_INTERVAL);
+
+
+/***** WEB ROUTING *****/
 
 
 app.get("/", function(req, res) {
@@ -555,8 +510,8 @@ app.post("/slack", function(req, res) {
                     updateConfigFile(config);
                     if (location_label)
                     {
-                        updateLocationList(location_label, latitude, longitude);
-                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude + " and saved as " + location_label + ".";
+                        location_list.update(location_label, latitude, longitude);
+                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude + " and saved as *" + location_label + "*.";
                     }
                     else
                     {
@@ -565,7 +520,7 @@ app.post("/slack", function(req, res) {
                 }
                 else if (location_label)
                 {
-                    var location = getLocation(location_label);
+                    var location = location_list.getLocation(location_label);
                     if (location)
                     {
                         var latitude = location.coords.latitude;
@@ -585,15 +540,27 @@ app.post("/slack", function(req, res) {
                 }
                 sendSlackMessage(response_type, body_text, response_url);
                 break;
+            case "removelocation":
+                var response_type = "in_channel";
+                if (location_list.labelInUse(location_label))
+                {
+                    location_list.remove(location_label);
+                    var body_text = "Location label *" + location_label + "* was removed.";
+                }
+                else
+                {
+                    var body_text = "Location label *" + location_label + "* was not found.";
+                }
+                break;
             case "locationlist":
                 var response_type = "in_channel";
                 var body_text = "*Location List*\n";
-                for (var i = 0; i <= location_list.length - 1; i++)
+                for (var i = 0; i <= location_list.data.length - 1; i++)
                 {
-                    var location_label = location_list[i].label;
-                    var latitude = location_list[i].location.coords.latitude;
-                    var longitude = location_list[i].location.coords.longitude;
-                    var altitude = location_list[i].location.coords.altitude;
+                    var location_label = location_list.data[i].label;
+                    var latitude = location_list.data[i].location.coords.latitude;
+                    var longitude = location_list.data[i].location.coords.longitude;
+                    var altitude = location_list.data[i].location.coords.altitude;
                     body_text += " - Label: " + location_label + " Latitude: " + latitude + " Longitude: " + longitude + " Altitude: " + altitude +"\n";
                 }
                 sendSlackMessage(response_type, body_text, response_url);
