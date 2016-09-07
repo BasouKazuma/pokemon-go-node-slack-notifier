@@ -43,6 +43,15 @@ To get notifications sent to Slack for Pokemon nearby a specified location. Work
     * Copy the Slack Command's token and add it to the `config.json`
   * Run "node app.js" to start the notifier
 
+## Slash Commands
+  * `help` - Lists the available slash commands
+  * `ignore [pokemon number]` - Add a Pokemon to the ignore list
+  * `unignore [pokemon number]` - Remove a Pokemon to the ignore list
+  * `ignorelist [optional_label] [latitude] [longitude]` - List the Pokemon currently being ignored
+  * `location [label]` - Changes the location to scan in decimal degrees
+  * `removelocation` - Removes the specified location by label
+  * `locationlist` - Lists the saved locations
+
 ## Config Parameters (nested)
 ### Authentication
   * `username` - Username for the selected account provider

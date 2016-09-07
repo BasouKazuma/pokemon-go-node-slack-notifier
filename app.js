@@ -88,7 +88,7 @@ var updateConfigFile = function(new_config)
  *
  *
  */
-var sendSlackMessage = function(response_type, text, response_url)
+var sendSlackMessage = function(response_body, response_url)
 {
     request.post(
         {
@@ -97,10 +97,7 @@ var sendSlackMessage = function(response_type, text, response_url)
             headers: {
                 "content-type": "application/json",
             },
-            body: {
-                response_type: response_type,
-                text: text
-            }
+            body: response_body
         }, 
         function(error, response, body) {
             console.log(body);
@@ -362,20 +359,52 @@ app.post("/slack", function(req, res) {
         {
             case "help":
                 var response_type = "ephemeral";
-                var body_text = "*Available Commands*\n";
-                body_text +=  " - ignore [pokemon number] (Add a Pokemon to the ignore list)\n";
-                body_text +=  " - unignore [pokemon number] (Remove a Pokemon to the ignore list)\n";
-                body_text +=  " - ignorelist (List the Pokemon currently being ignored)\n";
-                body_text +=  " - location [optional_label] [latitude] [longitude] (Changes the location to scan in decimal degrees)\n";
-                body_text +=  " - removelocation [label] (Removes the specified location by label )\n";
-                body_text +=  " - locationlist (Lists the saved locations)\n";
-                sendSlackMessage(response_type, body_text, response_url);
+                var body_text = "*Available Commands*";
+                var commands = [];
+                commands.push({
+                    text: "*help* \n _Lists the available slash commands_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*ignore [pokemon number]* \n _Add a Pokemon to the ignore list_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*unignore [pokemon number]* \n _Remove a Pokemon to the ignore list_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*ignorelist* \n _List the Pokemon currently being ignored_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*location [optional_label] [latitude] [longitude]* \n _Changes the location to scan in decimal degrees and saves it to the specified label_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*removelocation [label]* \n _Removes the specified location by label_",
+                    mrkdwn_in: ["text"]
+                });
+                commands.push({
+                    text: "*locationlist* \n _Lists the saved locations_",
+                    mrkdwn_in: ["text"]
+                });
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text,
+                    attachments: commands
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "ignore":
                 var response_type = "in_channel";
                 var pokemon_id = text_array[1];
                 var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
-                if (pokemon && !ignore_list.isPokemonIgnored(pokemon.id))
+                if (!pokemon)
+                {
+                    var body_text = "Invalid pokemon entered.";
+                }
+                else if (!ignore_list.isPokemonIgnored(pokemon.id))
                 {
                     ignore_list.add(pokemon.id);
                     var body_text = pokemon.name + " was added to the ignore list.";
@@ -384,7 +413,11 @@ app.post("/slack", function(req, res) {
                 {
                     var body_text = pokemon.name + " is already being ignored.";
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "unignore":
                 var response_type = "in_channel";
@@ -399,24 +432,36 @@ app.post("/slack", function(req, res) {
                 {
                     var body_text = pokemon.name + " wasn't in the ignore list.";
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "ignorelist":
                 var response_type = "in_channel";
                 var body_text = "*Ignored Pokemon*\n";
+                var ignored_attachments = [];
                 if (ignore_list.data.length > 0)
                 {
                     for (var i = 0; i <= ignore_list.data.length - 1; i ++)
                     {
                         var pokemon = pokeio_instance.pokemonlist[parseInt(ignore_list.data[i])-1];
-                        body_text += " - " + pokemon.name + "\n";
+                        ignored_attachments.push({
+                            text: pokemon.name
+                        });
                     }
                 }
                 else
                 {
                     body_text += "No Pokemon are currently being ignored.";
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text,
+                    attachments: ignored_attachments
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "location":
                 var response_type = "in_channel";
@@ -441,11 +486,16 @@ app.post("/slack", function(req, res) {
                     if (location_label)
                     {
                         location_list.add(location_label, latitude, longitude);
-                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude + " and saved as *" + location_label + "*.";
+                        var body_text = "The location was updated. \n";
+                        body_text += "Label: " + location_label + "\n";
+                        body_text += "Latitude: " + latitude + "\n";
+                        body_text += "Longitude: " + longitude + "\n";
                     }
                     else
                     {
-                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude;
+                        var body_text = "The location was updated. \n";
+                        body_text += "Latitude: " + latitude + "\n";
+                        body_text += "Longitude: " + longitude + "\n";
                     }
                 }
                 else if (location_label)
@@ -457,7 +507,10 @@ app.post("/slack", function(req, res) {
                         var longitude = location.coords.longitude;
                         config.location.coords.latitude = latitude;
                         config.location.coords.longitude = longitude;
-                        var body_text = "The location was updated to latitude:" + latitude + ", longitude:" + longitude;
+                        var body_text = "The location was updated. \n";
+                        body_text += "Label: " + location_label + "\n";
+                        body_text += "Latitude: " + latitude + "\n";
+                        body_text += "Longitude: " + longitude + "\n";
                     }
                     else
                     {
@@ -468,7 +521,11 @@ app.post("/slack", function(req, res) {
                 {
                     var body_text = "Unable to update the location.";
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "removelocation":
                 var response_type = "in_channel";
@@ -482,22 +539,57 @@ app.post("/slack", function(req, res) {
                 {
                     var body_text = "Location label *" + location_label + "* was not found.";
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             case "locationlist":
                 var response_type = "in_channel";
                 var body_text = "*Location List*\n";
+                var location_data = [];
                 for (var i = 0; i <= location_list.data.length - 1; i++)
                 {
                     var location_label = location_list.data[i].label;
                     var latitude = location_list.data[i].location.coords.latitude;
                     var longitude = location_list.data[i].location.coords.longitude;
                     var altitude = location_list.data[i].location.coords.altitude;
-                    body_text += " - Label: " + location_label + " Latitude: " + latitude + " Longitude: " + longitude + " Altitude: " + altitude +"\n";
+                    if (config.location.coords.latitude == latitude
+                        && config.location.coords.longitude == longitude
+                        && config.location.coords.altitude == altitude)
+                    {
+                        var attachment_color = 'good';
+                    }
+                    else
+                    {
+                        var attachment_color = null;
+                    }
+                    var attachment_text = "*" + location_label + "*\n";
+                    attachment_text += "Latitude: " + latitude + "\n";
+                    attachment_text += "Longitude: " + longitude + "\n";
+                    attachment_text += "Altitude: " + altitude + "\n";
+                    location_data.push({
+                        text: attachment_text,
+                        color: attachment_color,
+                        mrkdwn_in: ["text"]
+                    });
                 }
-                sendSlackMessage(response_type, body_text, response_url);
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text,
+                    attachments: location_data
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
             default:
+                var response_type = "ephemeral";
+                var body_text = "Unrecognized command, try again.";
+                var response_body = {
+                    response_type: response_type,
+                    text: body_text
+                }
+                sendSlackMessage(response_body, response_url);
                 break;
         }
     }
