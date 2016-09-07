@@ -394,7 +394,6 @@ app.post("/slack", function(req, res) {
                     text: body_text,
                     attachments: commands
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "ignore":
                 var response_type = "in_channel";
@@ -417,13 +416,16 @@ app.post("/slack", function(req, res) {
                     response_type: response_type,
                     text: body_text
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "unignore":
                 var response_type = "in_channel";
                 var pokemon_id = text_array[1];
                 var pokemon = pokeio_instance.pokemonlist[parseInt(pokemon_id)-1];
-                if (pokemon && ignore_list.isPokemonIgnored(pokemon.id))
+                if (!pokemon)
+                {
+                    var body_text = "Invalid pokemon entered.";
+                }
+                else if (ignore_list.isPokemonIgnored(pokemon.id))
                 {
                     ignore_list.remove(pokemon.id);
                     var body_text = pokemon.name + " was removed from the ignore list.";
@@ -436,7 +438,6 @@ app.post("/slack", function(req, res) {
                     response_type: response_type,
                     text: body_text
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "ignorelist":
                 var response_type = "in_channel";
@@ -461,7 +462,6 @@ app.post("/slack", function(req, res) {
                     text: body_text,
                     attachments: ignored_attachments
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "location":
                 var response_type = "in_channel";
@@ -525,7 +525,6 @@ app.post("/slack", function(req, res) {
                     response_type: response_type,
                     text: body_text
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "removelocation":
                 var response_type = "in_channel";
@@ -543,7 +542,6 @@ app.post("/slack", function(req, res) {
                     response_type: response_type,
                     text: body_text
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             case "locationlist":
                 var response_type = "in_channel";
@@ -580,7 +578,6 @@ app.post("/slack", function(req, res) {
                     text: body_text,
                     attachments: location_data
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
             default:
                 var response_type = "ephemeral";
@@ -589,7 +586,6 @@ app.post("/slack", function(req, res) {
                     response_type: response_type,
                     text: body_text
                 }
-                sendSlackMessage(response_body, response_url);
                 break;
         }
     }
@@ -597,5 +593,6 @@ app.post("/slack", function(req, res) {
     {
         console.log("Invalid slack token.");
     }
-    res.send(null);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(response_body);
 });
