@@ -591,7 +591,13 @@ app.post("/slack", function(req, res) {
     }
     else
     {
-        console.log("Invalid slack token.");
+        var error = "Invalid slack token.";
+        console.log(error);
+        var response_type = "in_channel";
+        var response_body = {
+            response_type: response_type,
+            text: error
+        }
     }
     res.setHeader('Content-Type', 'application/json');
     res.send(response_body);
