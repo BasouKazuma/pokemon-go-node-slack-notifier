@@ -2,15 +2,15 @@ var PokemonApi = require('pokemon-go-node-api');
 
 // Required user generated config file
 var config = require('./config.json');
-var PgoNotifierConfigValidator = require('./PgoNotifierConfigValidator.js');
-var PgoNotifierHelper = require('./PgoNotifierHelper.js');
+var PgoNotifierConfigValidator = require('./app/models/PgoNotifierConfigValidator.js');
+var PgoNotifierHelper = require('./app/models/PgoNotifierHelper.js');
 var pgo_notifier_helper = new PgoNotifierHelper();
-var PgoNotifierSlack = require('./PgoNotifierSlack.js');
-var PgoNotifierDiscoveredPokemon = require('./PgoNotifierDiscoveredPokemon.js');
-var PgoNotifierDiscoveredLuredPokemon = require('./PgoNotifierDiscoveredLuredPokemon.js');
-var PgoNotifierLocation = require('./PgoNotifierLocation.js');
-var PgoNotifierLocationList = require('./PgoNotifierLocationList.js');
-var PgoNotifierIgnoreList = require('./PgoNotifierIgnoreList.js');
+var PgoNotifierSlack = require('./app/models/PgoNotifierSlack.js');
+var PgoNotifierDiscoveredPokemon = require('./app/models/PgoNotifierDiscoveredPokemon.js');
+var PgoNotifierDiscoveredLuredPokemon = require('./app/models/PgoNotifierDiscoveredLuredPokemon.js');
+var PgoNotifierLocation = require('./app/models/PgoNotifierLocation.js');
+var PgoNotifierLocationList = require('./app/models/PgoNotifierLocationList.js');
+var PgoNotifierIgnoreList = require('./app/models/PgoNotifierIgnoreList.js');
 
 var request = require('request');
 var express = require("express");
